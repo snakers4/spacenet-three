@@ -68,7 +68,7 @@ class ImgAugAugs(object):
                 iaa.Affine(
                     scale={"x": (0.9, 1.1), "y": (0.9, 1.1)},
                     translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-                    rotate=(-15, 15),
+                    rotate=(-30, 30),
                     shear=(-5, 5)
                 ),   
             ),
