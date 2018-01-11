@@ -103,4 +103,4 @@ class UNet11(nn.Module):
         dec3 = self.dec3(torch.cat([dec4, conv3], 1))
         dec2 = self.dec2(torch.cat([dec3, conv2], 1))
         dec1 = self.dec1(torch.cat([dec2, conv1], 1))
-        return dec1
+        return F.sigmoid(self.final(dec1))

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class TLoss(nn.Module):
+class TDiceLoss(nn.Module):
     def __init__(self, dice_weight=1):
         super().__init__()
         self.nll_loss = nn.BCELoss()

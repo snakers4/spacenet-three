@@ -24,7 +24,7 @@ from sklearn.model_selection import train_test_split
 # custom classes
 from UNet import UNet11
 from LinkNet import LinkNet34
-from Loss import BCEDiceLoss,TLoss
+from Loss import BCEDiceLoss,TDiceLoss
 from LossSemSeg import cross_entropy2d
 from presets import preset_dict
 from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset
@@ -171,8 +171,8 @@ def main():
         pin_memory=True)
 
     # play with criteria?
-    criterion = TLoss().cuda()
-    # criterion = BCEDiceLoss().cuda()
+    # criterion = TLoss().cuda()
+    criterion = TDiceLoss().cuda()
     # criterion = cross_entropy2d
     
     if args.optimizer.startswith('adam'):           
