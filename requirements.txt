@@ -1,0 +1,22 @@
+###### Requirements without Version Specifiers ######
+cython
+libgdal
+gdal
+numpy
+opencv
+pip
+pyproj
+matplotlib
+
+fiona
+scikit-image
+scikit-learn
+scipy
+geopandas
+tqdm
+utm
+
+###### Requirements with Version Specifiers ######
+shapely=1.5.16
+smnx==0.5.1
+networkx=1.11

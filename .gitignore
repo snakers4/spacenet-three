@@ -1,0 +1,24 @@
+# Weights, logs and other folders #
+######################
+src/weights/*
+src/logs/*
+src/tb_logs/*
+data/*
+apls/*
+.ipynb_checkpoints/*
+__pycache__/*
+
+# Logs and databases #
+######################
+*.log
+*.npy
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
