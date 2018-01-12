@@ -79,7 +79,12 @@ args = parser.parse_args()
 print(args)
 
 def to_np(x):
-    return x.cpu().numpy()
+    x = x.cpu().numpy()
+    if len(x.shape)>3:
+        return x[:,0:3,:,:]
+    else:
+        return x
+     
 
 # remove the log file if it exists
 try:
@@ -99,7 +104,6 @@ def main():
                                                     preset_dict)
     # or_imgs,cty_no_mask = get_test_dataset(preset,preset_dict)
     
-
     train_imgs, val_imgs, train_masks, val_masks = train_test_split(bit8_imgs,
                                                                     bit8_masks,
                                                                     test_size=0.2,
@@ -336,7 +340,7 @@ def validate(val_loader, model, criterion):
         if args.tensorboard_images:
             if i % args.print_freq == 0:
                 info = {
-                    'images': to_np(input.view(-1,3,args.imsize, args.imsize)[:5])
+                    'images': to_np(input.view(-1,len(preset_dict[args.preset]['channels']),args.imsize, args.imsize)[:5])
                 }
                 for tag, images in info.items():
                     logger.image_summary(tag, images, train_minib_counter)
