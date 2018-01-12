@@ -63,7 +63,7 @@ class DecoderBlock(nn.Module):
         return self.block(x)      
     
 class UNet11(nn.Module):
-    def __init__(self, num_classes=1, num_filters=32):
+    def __init__(self, num_classes=1, num_filters=32, num_channels=3):
         super().__init__()
         self.pool = nn.MaxPool2d(2, 2)
         encoder = models.vgg11(pretrained=True).features
@@ -71,17 +71,17 @@ class UNet11(nn.Module):
         
         # try to use 8-channels as first input
         if num_channels==3:
-            self.conv1 = self.encoder[0]
+            self.conv1 = encoder[0]
         else:
             self.conv1 = nn.Conv2d(num_channels, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))            
         
-        self.conv2 = self.encoder[3]
-        self.conv3s = self.encoder[6]
-        self.conv3 = self.encoder[8]
-        self.conv4s = self.encoder[11]
-        self.conv4 = self.encoder[13]
-        self.conv5s = self.encoder[16]
-        self.conv5 = self.encoder[18]
+        self.conv2 = encoder[3]
+        self.conv3s = encoder[6]
+        self.conv3 = encoder[8]
+        self.conv4s = encoder[11]
+        self.conv4 = encoder[13]
+        self.conv5s = encoder[16]
+        self.conv5 = encoder[18]
 
         self.center = DecoderBlock(num_filters * 8 * 2, num_filters * 8 * 2, num_filters * 8)
         self.dec5 = DecoderBlock(num_filters * (16 + 8), num_filters * 8 * 2, num_filters * 8)

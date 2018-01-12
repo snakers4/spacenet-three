@@ -116,7 +116,8 @@ def main():
         model = LinkNet34(num_channels=3,
                           num_classes=1)
     elif args.arch.startswith('unet11'):
-        model = UNet11(num_classes=1)
+        model = UNet11(num_classes=1,
+                       num_channels=3)
     else:
         raise ValueError('Model not supported')
     
