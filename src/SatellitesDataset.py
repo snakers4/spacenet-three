@@ -97,6 +97,10 @@ class SatellitesDataset(data.Dataset):
             img = imread(self.image_paths[idx])
             target_channels = np.zeros(shape=(self.preset['width'],self.preset['width'],len(self.preset['channels'])))
             
+            # expand grayscale images to 3 dimensions
+            if len(img.shape)<3:
+                img = np.expand_dims(img, 2)                
+            
             for i,channel in enumerate(self.preset['channels']):
                 target_channels[:,:,i] = img[:,:,channel-1]
             
