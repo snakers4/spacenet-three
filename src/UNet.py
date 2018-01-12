@@ -66,9 +66,15 @@ class UNet11(nn.Module):
     def __init__(self, num_classes=1, num_filters=32):
         super().__init__()
         self.pool = nn.MaxPool2d(2, 2)
-        self.encoder = models.vgg11(pretrained=True).features
-        self.relu = self.encoder[1]
-        self.conv1 = self.encoder[0]
+        encoder = models.vgg11(pretrained=True).features
+        self.relu = encoder[1]
+        
+        # try to use 8-channels as first input
+        if num_channels==3:
+            self.conv1 = self.encoder[0]
+        else:
+            self.conv1 = nn.Conv2d(num_channels, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))            
+        
         self.conv2 = self.encoder[3]
         self.conv3s = self.encoder[6]
         self.conv3 = self.encoder[8]

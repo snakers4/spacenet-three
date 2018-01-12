@@ -44,11 +44,18 @@ class DecoderBlock(nn.Module):
 class LinkNet34(nn.Module):
     def __init__(self, num_classes, num_channels=3):
         super().__init__()
-        assert num_channels == 3, "num channels not used now. to use changle first conv layer to support num channels other then 3"
+
         filters = [64, 128, 256, 512]
         resnet = models.resnet34(pretrained=True)
 
-        self.firstconv = resnet.conv1
+        # self.firstconv = resnet.conv1
+        # assert num_channels == 3, "num channels not used now. to use changle first conv layer to support num channels other then 3"
+        # try to use 8-channels as first input
+        if num_channels==3:
+            self.firstconv = resnet.conv1
+        else:
+            self.firstconv = nn.Conv2d(num_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
+            
         self.firstbn = resnet.bn1
         self.firstrelu = resnet.relu
         self.firstmaxpool = resnet.maxpool
