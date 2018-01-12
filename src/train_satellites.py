@@ -113,11 +113,19 @@ def main():
                                       len(val_imgs),len(val_masks)))
     
     if args.arch.startswith('linknet34'):
-        model = LinkNet34(num_channels=3,
-                          num_classes=1)
+        if args.preset in ['mul_ps_8channel','mul_8channel']:
+            model = LinkNet34(num_channels=8,
+                              num_classes=1)
+        else:
+            model = LinkNet34(num_channels=3,
+                              num_classes=1)
     elif args.arch.startswith('unet11'):
-        model = UNet11(num_classes=1,
-                       num_channels=3)
+        if args.preset in ['mul_ps_8channel','mul_8channel']:
+            model = UNet11(num_classes=1,
+                           num_channels=8)            
+        else:
+            model = UNet11(num_classes=1,
+                           num_channels=3)
     else:
         raise ValueError('Model not supported')
     

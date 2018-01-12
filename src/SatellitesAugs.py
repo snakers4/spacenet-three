@@ -38,7 +38,15 @@ class SatellitesTrainAugmentation(object):
     def __call__(self, img, mask):
         global seed        
         seed = random.randint(0,10000)
-        img = self.augment(img)
+        
+        # naive solution to working with 8-channel images 
+        if img.shape[2]>3:
+            img1 = self.augment(img[:,:,0:3]) 
+            img2 = self.augment(img[:,:,3:6])
+            img2 = self.augment(img[:,:,5:8])
+            img = torch.cat((img1[0:3,:,:],img1[0:3,:,:],img1[1:3,:,:]))
+        else:
+            img = self.augment(img)
         mask = self.augment(mask)        
         return img,mask
 class SatellitesTestAugmentation(object):
@@ -50,7 +58,16 @@ class SatellitesTestAugmentation(object):
                 ToTensor(),
             ])
     def __call__(self, img, mask):
-        return self.augment(img),self.augment(mask)
+        # naive solution to working with 8-channel images 
+        if img.shape[2]>3:
+            img1 = self.augment(img[:,:,0:3]) 
+            img2 = self.augment(img[:,:,3:6])
+            img2 = self.augment(img[:,:,5:8])
+            img = torch.cat((img1[0:3,:,:],img1[0:3,:,:],img1[1:3,:,:]))
+        else:
+            img = self.augment(img)
+        mask = self.augment(mask)        
+        return img,mask        
 class ImgAugAugs(object):
     def __call__(self,
                  image):
