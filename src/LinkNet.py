@@ -103,5 +103,5 @@ class LinkNet34(nn.Module):
         f4 = self.finalrelu2(f3)
         f5 = self.finalconv3(f4)
 
-        # return f5 
-        return F.sigmoid(f5)
+        return f5 
+        # return F.sigmoid(f5)

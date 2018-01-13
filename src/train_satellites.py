@@ -24,7 +24,7 @@ from sklearn.model_selection import train_test_split
 # custom classes
 from UNet import UNet11
 from LinkNet import LinkNet34
-from Loss import BCEDiceLoss,TDiceLoss
+from Loss import BCEDiceLoss,TDiceLoss,DiceLoss
 from LossSemSeg import cross_entropy2d
 from presets import preset_dict
 from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset
@@ -87,10 +87,11 @@ def to_np(x):
      
 
 # remove the log file if it exists
-try:
-    shutil.rmtree('tb_logs/{}/'.format(args.lognumber))
-except:
-    pass
+if not args.evaluate:
+    try:
+        shutil.rmtree('tb_logs/{}/'.format(args.lognumber))
+    except:
+        pass
 
 # Set the Tensorboard logger
 if args.tensorboard:
@@ -129,7 +130,8 @@ def main():
                            num_channels=8)            
         else:
             model = UNet11(num_classes=1,
-                           num_channels=3)
+                           num_channels=3,
+                           num_filters=32)
     else:
         raise ValueError('Model not supported')
     
@@ -184,9 +186,8 @@ def main():
         pin_memory=True)
 
     # play with criteria?
-    # criterion = TLoss().cuda()
-    criterion = TDiceLoss().cuda()
-    # criterion = cross_entropy2d
+    # criterion = TDiceLoss().cuda()
+    criterion = DiceLoss().cuda()
     
     if args.optimizer.startswith('adam'):           
         optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), # Only finetunable params
