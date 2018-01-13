@@ -138,9 +138,9 @@ class ToTensor(object):
         else:
             # process images
             try:
-                return torch.from_numpy(cvimage).permute(2, 0, 1).float().div(255)
+                return torch.from_numpy(cvimage).permute(2, 0, 1).float().div(float(cvimage.max()))
             except:
-                return torch.from_numpy(np.flip(cvimage.transpose((2, 0, 1)),axis=0).copy()).float().div(255)
+                return torch.from_numpy(np.flip(cvimage.transpose((2, 0, 1)),axis=0).copy()).float().div(float(cvimage.max()))
 class CannyEdges(object):
     def __init__(self,threshold1=100,threshold2=200):
         self.threshold1 = threshold1
