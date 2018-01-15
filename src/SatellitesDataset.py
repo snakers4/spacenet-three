@@ -34,7 +34,7 @@ def get_test_dataset(preset,
 
     # get the data as lists for simplicity
     or_imgs = list(sample_df[['img_subfolders','img_files','img_folders']]
-                   .apply(lambda row: os.path.join(prefix,row['img_files'],row['img_folders'],row['img_subfolders']), axis=1).values)
+                   .apply(lambda row: os.path.join(prefix,row['img_files'],row['img_folders']+'_8bit',row['img_subfolders']), axis=1).values)
 
     le, u = sample_df['img_folders'].factorize()
     sample_df.loc[:,'city_no'] = le
