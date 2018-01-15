@@ -91,7 +91,8 @@ class SatellitesDataset(data.Dataset):
             if [path.split('/')[4].split('img')[1].split('.')[0] for path in self.image_paths] != [path.split('/')[4].split('img')[1].split('.')[0] for path in self.mask_paths]:            
                  raise ValueError('Mask list sorting <> image list sorting')
         else:
-            self.image_paths = sorted(image_paths)
+            self.image_paths = image_paths
+            # self.image_paths = sorted(image_paths)
                 
     def __len__(self):
         return len(self.image_paths)

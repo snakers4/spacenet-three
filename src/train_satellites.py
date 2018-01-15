@@ -441,6 +441,9 @@ def predict(predict_loader,
     c = 0
     # switch to evaluate mode
     model.eval()
+    
+    print(predict_img_names[0:16])
+    print(len(predict_img_names))
 
     with tqdm.tqdm(total=len(predict_loader)) as pbar:
         for i, (input) in enumerate(predict_loader):
@@ -459,6 +462,8 @@ def predict(predict_loader,
                 if not os.path.exists(prediction_folder):
                     os.mkdir(prediction_folder)                    
                 
+                # print(c)
+                # print(predict_img_names[c])
                 im_path = os.path.join(prediction_folder,predict_img_names[c][:-3]+'jpg')
                 
                 # save image to disk
@@ -467,7 +472,7 @@ def predict(predict_loader,
                 c+=1
 
             # dry run
-            break
+            # break
             
             pbar.update(1)            
 
