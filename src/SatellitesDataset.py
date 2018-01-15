@@ -22,6 +22,7 @@ mask_df_file = os.path.join(meta_prefix,'mask_df.csv')
 def get_test_dataset(preset,
                      preset_dict):
     meta_df = pd.read_csv(meta_data_file)
+    
     test_folders = ['AOI_2_Vegas_Roads_Test_Public','AOI_5_Khartoum_Roads_Test_Public',
                'AOI_3_Paris_Roads_Test_Public','AOI_4_Shanghai_Roads_Test_Public']
     
@@ -39,8 +40,10 @@ def get_test_dataset(preset,
     sample_df.loc[:,'city_no'] = le
     cty_no = list(sample_df.city_no.values)
     
-
-    return or_imgs,cty_no
+    city_folders = list(sample_df.img_files.values)
+    img_names = list(sample_df.img_subfolders.values)
+    
+    return or_imgs,city_folders,img_names,cty_no,prefix
 
 # high level function that return list of images and cities under presets
 def get_train_dataset(preset,
@@ -75,11 +78,13 @@ class SatellitesDataset(data.Dataset):
                  transforms = None,
                  ):
         
+        self.mask_paths = mask_paths
+        self.preset = preset
+        self.transforms = transforms
+        
         if mask_paths is not None:
             self.image_paths = sorted(image_paths)
             self.mask_paths = sorted(mask_paths)
-            self.transforms = transforms
-            self.preset = preset
 
             if len(self.image_paths) != len(mask_paths):
                 raise ValueError('Mask list length <> image list lenth')
@@ -122,8 +127,7 @@ class SatellitesDataset(data.Dataset):
                 target_channels[:,:,i] = img[:,:,channel-1]
             
             target_channels = target_channels.astype('uint8')
-            print(target_channels.dtype)
             
             if self.transforms is not None:
-                 target_channels = self.transforms(target_channels)
-            return target_channels    
+                 target_channels, _ = self.transforms(target_channels, None)
+            return target_channels

@@ -66,8 +66,9 @@ class SatellitesTestAugmentation(object):
             img = torch.cat((img1[0:3,:,:],img1[0:3,:,:],img1[1:3,:,:]))
         else:
             img = self.augment(img)
-        mask = self.augment(mask)        
-        return img,mask        
+        if mask is not None:
+            mask = self.augment(mask)
+        return img,mask
 class ImgAugAugs(object):
     def __call__(self,
                  image):
@@ -85,7 +86,7 @@ class ImgAugAugs(object):
                 iaa.Affine(
                     scale={"x": (0.9, 1.1), "y": (0.9, 1.1)},
                     translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-                    rotate=(-30, 30),
+                    rotate=(-45, 45),
                     shear=(-5, 5)
                 ),   
             ),

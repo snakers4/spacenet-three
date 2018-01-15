@@ -5,6 +5,8 @@ import argparse
 import os
 import shutil
 import time
+import tqdm
+from skimage.io import imsave
 
 import torch
 import torch.nn as nn
@@ -67,6 +69,8 @@ parser.add_argument('-s', '--seed', default=42, type=int, metavar='N',
                     help='seed for train test split (default: 42)')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                     help='evaluate model on validation set')
+parser.add_argument('-pr', '--predict', dest='predict', action='store_true',
+                    help='generate prediction masks')
 parser.add_argument('--tensorboard_images', default=False, type=str2bool,
                     help='Use tensorboard to see images')
 
@@ -84,17 +88,17 @@ def to_np(x):
         return x[:,0:3,:,:]
     else:
         return x
-     
 
-# remove the log file if it exists
-if not args.evaluate:
+# remove the log file if it exists if we run the script in the training mode
+if not (args.evaluate or args.predict):
+    print('Folder {} delete triggered'.format(args.lognumber))
     try:
         shutil.rmtree('tb_logs/{}/'.format(args.lognumber))
     except:
         pass
 
 # Set the Tensorboard logger
-if args.tensorboard:
+if args.tensorboard or args.tensorboard_images:
     logger = Logger('./tb_logs/{}'.format(args.lognumber))
 
 def main():
@@ -103,19 +107,24 @@ def main():
     
     bit8_imgs,bit8_masks,cty_no = get_train_dataset(args.preset,
                                                     preset_dict)
-    # or_imgs,cty_no_mask = get_test_dataset(preset,preset_dict)
+    
+    predict_imgs,predict_city_folders,predict_img_names,cty_no_test,predict_prefix = get_test_dataset(args.preset,
+                                                                                       preset_dict)    
     
     train_imgs, val_imgs, train_masks, val_masks = train_test_split(bit8_imgs,
                                                                     bit8_masks,
                                                                     test_size=0.2,
                                                                     stratify=cty_no,
                                                                     random_state=args.seed)    
-
-    print('Train images: {}\n'
-          'Train  masks: {}\n'
-          'Val   images: {}\n'
-          'Val    masks: {}\n'.format(len(train_imgs),len(train_masks),
-                                      len(val_imgs),len(val_masks)))
+    if not (args.predict):
+        print('Train images: {}\n'
+              'Train  masks: {}\n'
+              'Val   images: {}\n'
+              'Val    masks: {}\n'.format(len(train_imgs),len(train_masks),
+                                          len(val_imgs),len(val_masks)))
+    else:
+        print('Predict images: {}\n'.format(len(predict_imgs)))        
+    
     
     if args.arch.startswith('linknet34'):
         if args.preset in ['mul_ps_8channel','mul_8channel']:
@@ -158,6 +167,8 @@ def main():
                                              aug_scheme = args.augs)
           
     val_augs = SatellitesTestAugmentation(shape=args.imsize)
+    
+    predict_augs = SatellitesTestAugmentation(shape=args.imsize)    
 
     train_dataset = SatellitesDataset(preset = preset_dict[args.preset],
                                       image_paths = train_imgs,
@@ -169,6 +180,12 @@ def main():
                                     image_paths = val_imgs,
                                     mask_paths = val_masks,
                                     transforms = val_augs,
+                                   ) 
+    
+    predict_dataset = SatellitesDataset(preset = preset_dict[args.preset],
+                                    image_paths = predict_imgs,
+                                    mask_paths = None,
+                                    transforms = predict_augs,
                                    )          
           
     train_loader = torch.utils.data.DataLoader(
@@ -184,10 +201,18 @@ def main():
         shuffle=True,
         num_workers=args.workers,
         pin_memory=True)
+    
+    # predict loader loads the images sequentially
+    predict_loader = torch.utils.data.DataLoader(
+        predict_dataset,
+        batch_size=args.batch_size,        
+        shuffle=False,
+        num_workers=args.workers,
+        pin_memory=True)    
 
     # play with criteria?
-    # criterion = TDiceLoss().cuda()
-    criterion = DiceLoss().cuda()
+    criterion = TDiceLoss().cuda()
+    # criterion = DiceLoss().cuda()
     
     if args.optimizer.startswith('adam'):           
         optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), # Only finetunable params
@@ -206,10 +231,19 @@ def main():
                                               threshold = 1e-3,
                                               min_lr = 1e-7
                                              )    
-
+    # if we pass evaluate or predict flat, training loop is omitted altogether
     if args.evaluate:
         validate(val_loader, model, criterion)
         return
+    
+    if args.predict:
+        predict(predict_loader,
+                model,
+                predict_imgs,
+                predict_city_folders,
+                predict_img_names,
+                predict_prefix)
+        return    
 
     for epoch in range(args.start_epoch, args.epochs):
         # adjust_learning_rate(optimizer, epoch)
@@ -392,6 +426,52 @@ def validate(val_loader, model, criterion):
     print(' * Avg Val Loss {loss.avg:.4f}'.format(loss=losses))
 
     return losses.avg
+
+def predict(predict_loader,
+            model,
+            predict_imgs,
+            predict_city_folders,
+            predict_img_names,
+            predict_prefix):
+    
+    global valid_minib_counter
+    global logger
+    
+    print('Starting to do the predictions')
+    c = 0
+    # switch to evaluate mode
+    model.eval()
+
+    with tqdm.tqdm(total=len(predict_loader)) as pbar:
+        for i, (input) in enumerate(predict_loader):
+
+            input = input.float().cuda(async=True)
+            input_var = torch.autograd.Variable(input, volatile=True)
+
+            # compute output
+            output = model(input_var)
+            
+            for pred_image in output:
+
+                prediction_folder = os.path.join(predict_prefix,predict_city_folders[c],args.lognumber)
+                
+                # check that prediction folder exists
+                if not os.path.exists(prediction_folder):
+                    os.mkdir(prediction_folder)                    
+                
+                im_path = os.path.join(prediction_folder,predict_img_names[c][:-3]+'jpg')
+                
+                # save image to disk
+                imsave(im_path,pred_image.data.cpu().numpy()[0,:,:])
+                
+                c+=1
+
+            # dry run
+            break
+            
+            pbar.update(1)            
+
+    return 1
 
 def save_checkpoint(state, is_best, filename, best_filename):
     torch.save(state, filename)
