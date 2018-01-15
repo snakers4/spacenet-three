@@ -356,25 +356,26 @@ def create_new_masks(random_image):
     paved_types = [1,2]
     
     rgb_ps_image = os.path.join(data_prefix, meta_df[(meta_df.img_subfolders.str.contains(random_image))
-                                                     &(meta_df.img_folders=='RGB-PanSharpen')].img_files.values[0],
-                                                    'RGB-PanSharpen',
+                                                     &(meta_df.img_folders=='PAN')].img_files.values[0],
+                                                    'PAN',
                                                     meta_df[(meta_df.img_subfolders.str.contains(random_image))
-                                                            &(meta_df.img_folders=='RGB-PanSharpen')].img_subfolders.values[0])
+                                                            &(meta_df.img_folders=='PAN')].img_subfolders.values[0])
 
     # draw intersections only
     sample_df = geojson_df[((geojson_df.img_id == random_image))]
+    
     
     src = rasterio.open(rgb_ps_image)
     lane_numbers = None
     ls_list,lane_numbers = process_ls(sample_df,lane_numbers)
     ls_list_image = []
-    
+
     for line in ls_list:
         points = []
         for point in line:
             points.append(~src.affine * (point[0],point[1]))
         ls_list_image.append(points)
-
+    
     intersections_mask = draw_intersections(circle_size=15,
                                   ls_list=ls_list_image,
                                   mask_size=1300)
@@ -390,7 +391,7 @@ def create_new_masks(random_image):
         src = rasterio.open(rgb_ps_image)
         ls_list,lane_numbers = process_ls(sample_df,lane_numbers)
         ls_list_image = []
-      
+        
         for j,line in enumerate(ls_list):
             points = []
             for point in line:

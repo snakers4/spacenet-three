@@ -29,7 +29,7 @@ from LinkNet import LinkNet34
 from Loss import BCEDiceLoss,TDiceLoss,DiceLoss
 from LossSemSeg import cross_entropy2d
 from presets import preset_dict
-from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset
+from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset,get_train_dataset_for_predict
 from SatellitesAugs import SatellitesTrainAugmentation,SatellitesTestAugmentation
 from presets import preset_dict
 
@@ -71,6 +71,8 @@ parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                     help='evaluate model on validation set')
 parser.add_argument('-pr', '--predict', dest='predict', action='store_true',
                     help='generate prediction masks')
+parser.add_argument('-pr_train', '--predict_train', dest='predict_train', action='store_true',
+                    help='generate prediction masks')
 parser.add_argument('--tensorboard_images', default=False, type=str2bool,
                     help='Use tensorboard to see images')
 
@@ -90,7 +92,7 @@ def to_np(x):
         return x
 
 # remove the log file if it exists if we run the script in the training mode
-if not (args.evaluate or args.predict):
+if not (args.evaluate or args.predict or args.predict_train):
     print('Folder {} delete triggered'.format(args.lognumber))
     try:
         shutil.rmtree('tb_logs/{}/'.format(args.lognumber))
@@ -108,15 +110,19 @@ def main():
     bit8_imgs,bit8_masks,cty_no = get_train_dataset(args.preset,
                                                     preset_dict)
     
-    predict_imgs,predict_city_folders,predict_img_names,cty_no_test,predict_prefix = get_test_dataset(args.preset,
-                                                                                       preset_dict)    
-    
+    if args.predict:
+        predict_imgs,predict_city_folders,predict_img_names,cty_no_test,predict_prefix = get_test_dataset(args.preset,
+                                                                                           preset_dict)    
+    elif args.predict_train:
+        predict_imgs,predict_city_folders,predict_img_names,cty_no_test,predict_prefix = get_train_dataset_for_predict(args.preset,
+                                                                                           preset_dict)     
+
     train_imgs, val_imgs, train_masks, val_masks = train_test_split(bit8_imgs,
                                                                     bit8_masks,
                                                                     test_size=0.2,
                                                                     stratify=cty_no,
                                                                     random_state=args.seed)    
-    if not (args.predict):
+    if not (args.predict or args.predict_train):
         print('Train images: {}\n'
               'Train  masks: {}\n'
               'Val   images: {}\n'
@@ -236,7 +242,7 @@ def main():
         validate(val_loader, model, criterion)
         return
     
-    if args.predict:
+    if args.predict or args.predict_train:
         predict(predict_loader,
                 model,
                 predict_imgs,

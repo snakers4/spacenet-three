@@ -132,3 +132,28 @@ class SatellitesDataset(data.Dataset):
             if self.transforms is not None:
                  target_channels, _ = self.transforms(target_channels, None)
             return target_channels
+
+def get_train_dataset_for_predict(preset,
+                                  preset_dict):
+    mask_df = pd.read_csv(mask_df_file)
+    meta_df = pd.read_csv(meta_data_file)
+    data_df = mask_df.merge(meta_df[['img_subfolders','width','channels']], how = 'left', left_on = 'img_file', right_on = 'img_subfolders')
+    
+    # select the images
+    sample_df = data_df[(data_df.width == preset_dict[preset]['width'])
+                        &(data_df.mask_max > 0)
+                        &(data_df.channels == preset_dict[preset]['channel_count'])
+                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])]
+    
+    # get the data as lists for simplicity
+    bit8_imgs = list(sample_df.bit8_path.values)
+    bit8_imgs = [(os.path.join(prefix_train,path)) for path in bit8_imgs]
+
+    le, u = sample_df['img_folder'].factorize()
+    sample_df.loc[:,'city_no'] = le
+    cty_no = list(sample_df.city_no.values)
+    
+    city_folders = list(sample_df.img_folder.values)
+    img_names = list(sample_df.img_file.values)    
+    
+    return bit8_imgs,city_folders,img_names,cty_no,prefix   
