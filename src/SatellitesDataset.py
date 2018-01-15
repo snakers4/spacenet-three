@@ -16,7 +16,7 @@ prefix_train = '../'
 meta_prefix = '../'
 meta_data_file = os.path.join(meta_prefix,'metadata.csv')
 mask_df_file = os.path.join(meta_prefix,'mask_df.csv')
-
+wide_mask_df_file = 'new_masks.csv'
 
 # high level function that return list of images and cities under presets
 def get_test_dataset(preset,
@@ -157,3 +157,35 @@ def get_train_dataset_for_predict(preset,
     img_names = list(sample_df.img_file.values)    
     
     return bit8_imgs,city_folders,img_names,cty_no,prefix   
+
+def get_train_dataset_wide_masks(preset,
+                     preset_dict):
+    mask_df = pd.read_csv(mask_df_file)
+    meta_df = pd.read_csv(meta_data_file)
+    data_df = mask_df.merge(meta_df[['img_subfolders','width','channels']], how = 'left', left_on = 'img_file', right_on = 'img_subfolders')
+
+    new_mask_df = pd.read_csv('new_masks.csv')
+    good_new_masks = list(new_mask_df[new_mask_df.correct == 1].img_names.values)
+    
+    # select the images
+    sample_df = data_df[(data_df.width == preset_dict[preset]['width'])
+                        &(data_df.mask_max > 0)
+                        &(data_df.channels == preset_dict[preset]['channel_count'])
+                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])
+                        &(data_df.img_file.isin(good_new_masks))
+                       ]
+
+    # get the data as lists for simplicity
+    bit8_imgs = list(sample_df.bit8_path.values)
+    bit8_masks = list(sample_df.mask_path.values)
+    
+    # replace masks with width masks
+    bit8_masks = [(path.replace("_mask","_width_mask")) for path in bit8_masks]
+    
+    bit8_imgs = [(os.path.join(prefix_train,path)) for path in bit8_imgs]
+    bit8_masks = [(os.path.join(prefix_train,path)) for path in bit8_masks]
+    le, u = sample_df['img_folder'].factorize()
+    sample_df.loc[:,'city_no'] = le
+    cty_no = list(sample_df.city_no.values)
+    
+    return bit8_imgs,bit8_masks,cty_no

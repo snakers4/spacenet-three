@@ -29,7 +29,7 @@ from LinkNet import LinkNet34
 from Loss import BCEDiceLoss,TDiceLoss,DiceLoss
 from LossSemSeg import cross_entropy2d
 from presets import preset_dict
-from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset,get_train_dataset_for_predict
+from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset,get_train_dataset_for_predict,get_train_dataset_wide_masks
 from SatellitesAugs import SatellitesTrainAugmentation,SatellitesTestAugmentation
 from presets import preset_dict
 
@@ -107,8 +107,12 @@ def main():
     global args, best_prec1,best_val_loss
     global logger
     
-    bit8_imgs,bit8_masks,cty_no = get_train_dataset(args.preset,
-                                                    preset_dict)
+    # train either on normal masks or on wide masks
+    # bit8_imgs,bit8_masks,cty_no = get_train_dataset(args.preset,
+    #                                                preset_dict)
+    
+    bit8_imgs,bit8_masks,cty_no = get_train_dataset_wide_masks(args.preset,
+                                                               preset_dict)    
     
     if args.predict:
         predict_imgs,predict_city_folders,predict_img_names,cty_no_test,predict_prefix = get_test_dataset(args.preset,
