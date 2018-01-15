@@ -43,8 +43,8 @@ class SatellitesTrainAugmentation(object):
         if img.shape[2]>3:
             img1 = self.augment(img[:,:,0:3]) 
             img2 = self.augment(img[:,:,3:6])
-            img2 = self.augment(img[:,:,5:8])
-            img = torch.cat((img1[0:3,:,:],img1[0:3,:,:],img1[1:3,:,:]))
+            img3 = self.augment(img[:,:,5:8])
+            img = torch.cat((img1[0:3,:,:],img2[0:3,:,:],img3[1:3,:,:]))
         else:
             img = self.augment(img)
         mask = self.augment(mask)        
@@ -62,8 +62,8 @@ class SatellitesTestAugmentation(object):
         if img.shape[2]>3:
             img1 = self.augment(img[:,:,0:3]) 
             img2 = self.augment(img[:,:,3:6])
-            img2 = self.augment(img[:,:,5:8])
-            img = torch.cat((img1[0:3,:,:],img1[0:3,:,:],img1[1:3,:,:]))
+            img3 = self.augment(img[:,:,5:8])
+            img = torch.cat((img1[0:3,:,:],img2[0:3,:,:],img3[1:3,:,:]))
         else:
             img = self.augment(img)
         if mask is not None:

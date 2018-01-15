@@ -17,6 +17,10 @@ data_prefix = '../data'
 geojson_df = pd.read_csv('geojson_df_full.csv')
 meta_df = pd.read_csv('../metadata.csv')
 
+# manual curation of the dataset
+# all unpaved roads with 2+ lanes set to paved
+geojson_df.loc[(geojson_df.lane_number>2)&(geojson_df.paved == 2),'paved'] = 1
+
 # a function to understand list depth
 def depth(seq):
     for level in count():
