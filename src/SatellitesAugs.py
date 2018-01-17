@@ -52,7 +52,8 @@ class SatellitesTrainAugmentation(object):
             img = self.augment(img)
         # process mask
         is_mask = True
-        mask = self.augment(mask)        
+        # quick hack to evaluate paved only or non-paved only roads
+        mask = self.augment(mask[:,:,1])        
         return img,mask
 class SatellitesTestAugmentation(object):
     def __init__(self,shape=1280):
@@ -63,7 +64,9 @@ class SatellitesTestAugmentation(object):
                 ToTensor(),
             ])
     def __call__(self, img, mask):
+        global is_mask
         # naive solution to working with 8-channel images 
+        is_mask = False
         if img.shape[2]>3:
             img1 = self.augment(img[:,:,0:3]) 
             img2 = self.augment(img[:,:,3:6])
@@ -72,7 +75,9 @@ class SatellitesTestAugmentation(object):
         else:
             img = self.augment(img)
         if mask is not None:
-            mask = self.augment(mask)
+            is_mask = True
+            # quick hack to evaluate paved only or non-paved only roads
+            mask = self.augment(mask[:,:,1])               
         return img,mask
 class ImgAugAugs(object):
     def __call__(self,
