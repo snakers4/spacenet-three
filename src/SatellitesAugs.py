@@ -11,6 +11,7 @@ from PIL import Image
 import torch
 
 seed = 43
+is_mask = False
 
 class SatellitesTrainAugmentation(object):
     def __init__(self,
@@ -36,9 +37,11 @@ class SatellitesTrainAugmentation(object):
                 ])            
         
     def __call__(self, img, mask):
-        global seed        
+        global seed
+        global is_mask
         seed = random.randint(0,10000)
-        
+        # process image
+        is_mask = False
         # naive solution to working with 8-channel images 
         if img.shape[2]>3:
             img1 = self.augment(img[:,:,0:3]) 
@@ -47,6 +50,8 @@ class SatellitesTrainAugmentation(object):
             img = torch.cat((img1[0:3,:,:],img2[0:3,:,:],img3[1:3,:,:]))
         else:
             img = self.augment(img)
+        # process mask
+        is_mask = True
         mask = self.augment(mask)        
         return img,mask
 class SatellitesTestAugmentation(object):
@@ -131,11 +136,15 @@ class NpyToPil(object):
         return Image.fromarray(cv2_image)  
 class ToTensor(object):
     def __call__(self, cvimage):
+        global is_mask
         # process masks
-        if len(cvimage.shape)<3:
+        if (is_mask==True) and (len(cvimage.shape)==2):
             cvimage = np.expand_dims(cvimage, 2)
             cvimage = (cvimage > 255 * 0.5).astype(np.uint8)
-            return torch.from_numpy(cvimage).permute(2, 0, 1).float()       
+            return torch.from_numpy(cvimage).permute(2, 0, 1).float()
+        elif (is_mask==True) and (len(cvimage.shape)==3):
+            cvimage = (cvimage > 255 * 0.5).astype(np.uint8)
+            return torch.from_numpy(cvimage).permute(2, 0, 1).float()            
         else:
             # process images
             try:
