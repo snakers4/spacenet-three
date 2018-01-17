@@ -29,7 +29,7 @@ from LinkNet import LinkNet34
 from Loss import BCEDiceLoss,TDiceLoss,DiceLoss
 from LossSemSeg import cross_entropy2d
 from presets import preset_dict
-from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset,get_train_dataset_for_predict,get_train_dataset_wide_masks
+from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset,get_train_dataset_for_predict,get_train_dataset_wide_masks,get_train_dataset_layered_masks
 from SatellitesAugs import SatellitesTrainAugmentation,SatellitesTestAugmentation
 from presets import preset_dict
 
@@ -107,12 +107,16 @@ def main():
     global args, best_prec1,best_val_loss
     global logger
     
-    # train either on normal masks or on wide masks
+    # train either on normal masks or on wide masks or on 3-layer masks
     # bit8_imgs,bit8_masks,cty_no = get_train_dataset(args.preset,
     #                                                preset_dict)
     
-    bit8_imgs,bit8_masks,cty_no = get_train_dataset_wide_masks(args.preset,
-                                                               preset_dict)    
+    # bit8_imgs,bit8_masks,cty_no = get_train_dataset_wide_masks(args.preset,
+    #                                                           preset_dict)    
+
+    bit8_imgs,bit8_masks,cty_no = get_train_dataset_layered_masks(args.preset,
+                                                                  preset_dict)      
+    
     
     if args.predict:
         predict_imgs,predict_city_folders,predict_img_names,cty_no_test,predict_prefix = get_test_dataset(args.preset,
@@ -139,16 +143,16 @@ def main():
     if args.arch.startswith('linknet34'):
         if args.preset in ['mul_ps_8channel','mul_8channel']:
             model = LinkNet34(num_channels=8,
-                              num_classes=1)
+                              num_classes=3)
         else:
             model = LinkNet34(num_channels=3,
-                              num_classes=1)
+                              num_classes=3)
     elif args.arch.startswith('unet11'):
         if args.preset in ['mul_ps_8channel','mul_8channel']:
-            model = UNet11(num_classes=1,
+            model = UNet11(num_classes=3,
                            num_channels=8)            
         else:
-            model = UNet11(num_classes=1,
+            model = UNet11(num_classes=3,
                            num_channels=3,
                            num_filters=32)
     else:
@@ -172,53 +176,57 @@ def main():
             print("=> no checkpoint found at '{}'".format(args.resume))
 
     cudnn.benchmark = True
-          
-    train_augs = SatellitesTrainAugmentation(shape=args.imsize,
-                                             aug_scheme = args.augs)
-          
-    val_augs = SatellitesTestAugmentation(shape=args.imsize)
-    
-    predict_augs = SatellitesTestAugmentation(shape=args.imsize)    
+     
+    if not (args.predict or args.predict_train):
+        
+        train_augs = SatellitesTrainAugmentation(shape=args.imsize,
+                                                 aug_scheme = args.augs)
 
-    train_dataset = SatellitesDataset(preset = preset_dict[args.preset],
-                                      image_paths = train_imgs,
-                                      mask_paths = train_masks,
-                                      transforms = train_augs,
-                                     )
+        val_augs = SatellitesTestAugmentation(shape=args.imsize)
+        
+        train_dataset = SatellitesDataset(preset = preset_dict[args.preset],
+                                          image_paths = train_imgs,
+                                          mask_paths = train_masks,
+                                          transforms = train_augs,
+                                         )
 
-    val_dataset = SatellitesDataset(preset = preset_dict[args.preset],
-                                    image_paths = val_imgs,
-                                    mask_paths = val_masks,
-                                    transforms = val_augs,
-                                   ) 
-    
-    predict_dataset = SatellitesDataset(preset = preset_dict[args.preset],
-                                    image_paths = predict_imgs,
-                                    mask_paths = None,
-                                    transforms = predict_augs,
-                                   )          
-          
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=args.batch_size,        
-        shuffle=True,
-        num_workers=args.workers,
-        pin_memory=True)
+        val_dataset = SatellitesDataset(preset = preset_dict[args.preset],
+                                        image_paths = val_imgs,
+                                        mask_paths = val_masks,
+                                        transforms = val_augs,
+                                       )
+        
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size=args.batch_size,        
+            shuffle=True,
+            num_workers=args.workers,
+            pin_memory=True)
 
-    val_loader = torch.utils.data.DataLoader(
-        val_dataset,
-        batch_size=args.batch_size,        
-        shuffle=True,
-        num_workers=args.workers,
-        pin_memory=True)
+        val_loader = torch.utils.data.DataLoader(
+            val_dataset,
+            batch_size=args.batch_size,        
+            shuffle=True,
+            num_workers=args.workers,
+            pin_memory=True)
+        
+    else:
+        predict_augs = SatellitesTestAugmentation(shape=args.imsize)    
+
+
     
-    # predict loader loads the images sequentially
-    predict_loader = torch.utils.data.DataLoader(
-        predict_dataset,
-        batch_size=args.batch_size,        
-        shuffle=False,
-        num_workers=args.workers,
-        pin_memory=True)    
+        predict_dataset = SatellitesDataset(preset = preset_dict[args.preset],
+                                        image_paths = predict_imgs,
+                                        mask_paths = None,
+                                        transforms = predict_augs,
+                                       )          
+        # predict loader loads the images sequentially
+        predict_loader = torch.utils.data.DataLoader(
+            predict_dataset,
+            batch_size=args.batch_size,        
+            shuffle=False,
+            num_workers=args.workers,
+            pin_memory=True)    
 
     # play with criteria?
     criterion = TDiceLoss().cuda()
