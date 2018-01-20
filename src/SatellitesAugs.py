@@ -21,18 +21,21 @@ class SatellitesTrainAugmentation(object):
         if aug_scheme == True:
             print('Augmentations are enabled for train')
             self.augment = Compose([
-                    NpyToPil(),
-                    transforms.Scale(shape),
-                    PilToNpy(),
-                    ImgAugAugs(),            
+                    # RandomCrop(800),
+                    # NpyToPil(),
+                    # transforms.Scale(shape),
+                    # PilToNpy(),
+                    ImgAugAugs(),
+                    RandomCrop(shape),
                     ToTensor(),
                 ])
         else:
             print('Augmentations are NOT enabled for train')
             self.augment = Compose([
-                    NpyToPil(),
-                    transforms.Scale(shape),
-                    PilToNpy(),
+                    RandomCrop(shape),                
+                    # NpyToPil(),
+                    # transforms.Scale(shape),
+                    # PilToNpy(),
                     ToTensor(),
                 ])            
         
@@ -53,14 +56,16 @@ class SatellitesTrainAugmentation(object):
         # process mask
         is_mask = True
         # quick hack to evaluate paved only or non-paved only roads
-        mask = self.augment(mask[:,:,1])        
+        # mask = self.augment(mask[:,:,1:3])        
+        mask = self.augment(mask)
         return img,mask
 class SatellitesTestAugmentation(object):
     def __init__(self,shape=1280):
         self.augment = Compose([
-                NpyToPil(),
-                transforms.Scale(shape),
-                PilToNpy(),            
+                RandomCrop(shape),            
+                # NpyToPil(),
+                # transforms.Scale(shape),
+                # PilToNpy(),            
                 ToTensor(),
             ])
     def __call__(self, img, mask):
@@ -77,7 +82,8 @@ class SatellitesTestAugmentation(object):
         if mask is not None:
             is_mask = True
             # quick hack to evaluate paved only or non-paved only roads
-            mask = self.augment(mask[:,:,1])               
+            # mask = self.augment(mask[:,:,1:3])
+            mask = self.augment(mask)            
         return img,mask
 class ImgAugAugs(object):
     def __call__(self,
@@ -96,13 +102,29 @@ class ImgAugAugs(object):
                 iaa.Affine(
                     scale={"x": (0.9, 1.1), "y": (0.9, 1.1)},
                     translate_percent={"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-                    rotate=(-45, 45),
+                    rotate=(-90, 90),
                     shear=(-5, 5)
                 ),   
             ),
         ], random_order=True) # apply augmenters in random order        
 
-        return seq.augment_image(image)    
+        return seq.augment_image(image)
+class RandomCrop(object):
+    def __init__(self,
+                 shape = 512):
+        self.shape = shape
+    def __call__(self,img):  
+        global seed
+        random.seed(seed)
+        x_shift =  random.randint(0, img.shape[0] - self.shape - 1)
+        random.seed(seed-1)
+        y_shift =  random.randint(0, img.shape[1] - self.shape - 1)
+        if len(img.shape)==3:
+            return img[x_shift:x_shift+self.shape,x_shift:x_shift+self.shape,:]
+        elif len(img.shape)==2:
+            return img[x_shift:x_shift+self.shape,x_shift:x_shift+self.shape]
+        else:
+            raise NotImplementedError
 class Normalize(object):
     def __init__(self,mean,std):
         self.mean = np.array(mean, dtype=np.float32)

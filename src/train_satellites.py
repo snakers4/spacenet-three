@@ -25,7 +25,7 @@ from sklearn.model_selection import train_test_split
 
 # custom classes
 from UNet import UNet11
-from LinkNet import LinkNet34
+from LinkNet import LinkNet34,LinkNet50
 from Loss import BCEDiceLoss,TDiceLoss,DiceLoss
 from LossSemSeg import cross_entropy2d
 from presets import preset_dict
@@ -111,11 +111,11 @@ def main():
     # bit8_imgs,bit8_masks,cty_no = get_train_dataset(args.preset,
     #                                                preset_dict)
     
-    # bit8_imgs,bit8_masks,cty_no = get_train_dataset_wide_masks(args.preset,
-    #                                                           preset_dict)    
+    bit8_imgs,bit8_masks,cty_no = get_train_dataset_wide_masks(args.preset,
+                                                               preset_dict)    
 
-    bit8_imgs,bit8_masks,cty_no = get_train_dataset_layered_masks(args.preset,
-                                                                  preset_dict)      
+    # bit8_imgs,bit8_masks,cty_no = get_train_dataset_layered_masks(args.preset,
+    #                                                               preset_dict)      
     
     
     if args.predict:
@@ -143,16 +143,23 @@ def main():
     if args.arch.startswith('linknet34'):
         if args.preset in ['mul_ps_8channel','mul_8channel']:
             model = LinkNet34(num_channels=8,
-                              num_classes=3)
+                              num_classes=1)
         else:
             model = LinkNet34(num_channels=3,
-                              num_classes=3)
+                              num_classes=1)
+    elif args.arch.startswith('linknet50'):
+        if args.preset in ['mul_ps_8channel','mul_8channel']:
+            model = LinkNet50(num_channels=8,
+                              num_classes=1)
+        else:
+            model = LinkNet50(num_channels=3,
+                              num_classes=1)            
     elif args.arch.startswith('unet11'):
         if args.preset in ['mul_ps_8channel','mul_8channel']:
-            model = UNet11(num_classes=3,
+            model = UNet11(num_classes=1,
                            num_channels=8)            
         else:
-            model = UNet11(num_classes=3,
+            model = UNet11(num_classes=1,
                            num_channels=3,
                            num_filters=32)
     else:
@@ -316,7 +323,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
     end = time.time()
     for i, (input, target) in enumerate(train_loader):
-       
+
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -404,7 +411,7 @@ def validate(val_loader, model, criterion):
                     'masks': to_np(target.view(-1,args.imsize, args.imsize)[:5])
                 }
                 for tag, images in info.items():
-                    logger.image_summary(tag, images, train_minib_counter)                    
+                    logger.image_summary(tag, images, train_minib_counter)                  
         # Show the output masks
         if args.tensorboard_images:
             if i % args.print_freq == 0:

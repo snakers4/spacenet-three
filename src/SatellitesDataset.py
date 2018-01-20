@@ -165,15 +165,32 @@ def get_train_dataset_wide_masks(preset,
     meta_df = pd.read_csv(meta_data_file)
     data_df = mask_df.merge(meta_df[['img_subfolders','width','channels']], how = 'left', left_on = 'img_file', right_on = 'img_subfolders')
 
+    # filter out bad new masks
     new_mask_df = pd.read_csv(wide_mask_df_file)
     good_new_masks = list(new_mask_df[new_mask_df.correct == 1].img_names.values)
     
+    # filter only roads with mostly non-paved roads 
+    
+    df = pd.read_csv('geojson_df_full.csv')
+    table = pd.pivot_table(df,
+                   index=["img_id"],
+                   columns = ['paved'],
+                   values=["linestring"],
+                   aggfunc={len},fill_value=0)
+    table.columns = ['count_paved','count_non_paved'] 
+    mostly_non_paved_imgs = list(table[table.count_paved < table.count_non_paved].index.values)    
+    
+    
     # select the images
     sample_df = data_df[(data_df.width == preset_dict[preset]['width'])
-                        &(data_df.mask_max > 0)
-                        &(data_df.channels == preset_dict[preset]['channel_count'])
-                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])
-                        &(data_df.img_file.isin(good_new_masks))
+                        &(data_df.mask_max > 0) # filter broken masks
+                        &(data_df.channels == preset_dict[preset]['channel_count']) # preset filter
+                        &(data_df.img_subfolder == preset_dict[preset]['subfolder']) # preset filter
+                        &(data_df.img_file.isin(good_new_masks) # filter new good masks
+                        &(data_df['img_subfolders']
+                          .apply(lambda x: 'AOI'+x.split('AOI')[1][:-4])
+                          .isin(mostly_non_paved_imgs)) # filter out mostly paved roads
+                         )
                        ]
 
     # get the data as lists for simplicity
