@@ -1,11 +1,13 @@
 import numpy as np
 import math
-import skimage.transform
 from skimage.io import imread
 import matplotlib.pyplot as plt
-
-from skimage.morphology import skeletonize
+import skimage.morphology
 import sknw
+
+DILATION_SIZE = 4
+MAX_DISTANCE_FROM_LINE_TO_SPLIT = 2
+CLIP_THRESHOLD = 0.3
 
 
 def simplify_edge(ps: np.ndarray, max_distance=3):
@@ -39,9 +41,6 @@ def simplify_edge(ps: np.ndarray, max_distance=3):
 
 
 def draw_original_graph(graph):
-    """
-    :type graph: MultiGraph
-    """
     # draw original points in green/red
     for (s, e) in graph.edges():
         for _, val in graph[s][e].items():
@@ -53,7 +52,9 @@ def draw_original_graph(graph):
 
 
 def simplify_graph(graph, max_distance=2):
-    # draw simplified points in blue
+    """
+    :type graph: MultiGraph
+    """
     all_segments = []
     for (s, e) in graph.edges():
         for _, val in graph[s][e].items():
@@ -77,12 +78,14 @@ if __name__ == '__main__':
     img = imread(mask_fn, as_grey=True)
     print(np.min(img), np.max(img))
 
-    img_clip = np.zeros_like(img)
-    img_clip[img > 255 * 0.3] = 1
+    img = skimage.morphology.dilation(img, selem=skimage.morphology.disk(DILATION_SIZE))
 
-    ske = skeletonize(img_clip).astype(np.uint16)
+    img_clip = np.zeros_like(img)
+    img_clip[img > 255 * CLIP_THRESHOLD] = 1
+
+    ske = skimage.morphology.skeletonize(img_clip).astype(np.uint16)
     graph = sknw.build_sknw(ske, multi=True)
-    all_segments = simplify_graph(graph, max_distance=2)
+    all_segments = simplify_graph(graph, max_distance=MAX_DISTANCE_FROM_LINE_TO_SPLIT)
 
     plt.imshow(img)
     draw_original_graph(graph)
