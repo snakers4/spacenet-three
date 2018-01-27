@@ -25,7 +25,7 @@ from sklearn.model_selection import train_test_split
 
 # custom classes
 from UNet import UNet11
-from LinkNet import LinkNet34,LinkNet50
+from LinkNet import LinkNet34,LinkNet50,LinkNet50_full
 from Loss import BCEDiceLoss,TDiceLoss,DiceLoss
 from LossSemSeg import cross_entropy2d
 from presets import preset_dict
@@ -108,11 +108,11 @@ def main():
     global logger
     
     # train either on normal masks or on wide masks or on 3-layer masks
-    # bit8_imgs,bit8_masks,cty_no = get_train_dataset(args.preset,
-    #                                                preset_dict)
+    bit8_imgs,bit8_masks,cty_no = get_train_dataset(args.preset,
+                                                    preset_dict)
     
-    bit8_imgs,bit8_masks,cty_no = get_train_dataset_wide_masks(args.preset,
-                                                               preset_dict)    
+    # bit8_imgs,bit8_masks,cty_no = get_train_dataset_wide_masks(args.preset,
+    #                                                           preset_dict)    
 
     # bit8_imgs,bit8_masks,cty_no = get_train_dataset_layered_masks(args.preset,
     #                                                               preset_dict)      
@@ -141,13 +141,23 @@ def main():
     
     
     if args.arch.startswith('linknet34'):
+        print('Full linknet34 activated')
         if args.preset in ['mul_ps_8channel','mul_8channel']:
             model = LinkNet34(num_channels=8,
                               num_classes=1)
         else:
             model = LinkNet34(num_channels=3,
                               num_classes=1)
+    elif args.arch.startswith('linknet50_full'):
+        print('Full linknet50 activated')
+        if args.preset in ['mul_ps_8channel','mul_8channel']:
+            model = LinkNet50_full(num_channels=8,
+                              num_classes=1)
+        else:
+            model = LinkNet50_full(num_channels=3,
+                              num_classes=1)               
     elif args.arch.startswith('linknet50'):
+        print('Truncated linknet50 activated')
         if args.preset in ['mul_ps_8channel','mul_8channel']:
             model = LinkNet50(num_channels=8,
                               num_classes=1)
@@ -254,7 +264,7 @@ def main():
                                               patience = 4,
                                               verbose = True,
                                               threshold = 1e-3,
-                                              min_lr = 1e-7
+                                              min_lr = 1e-5
                                              )    
     # if we pass evaluate or predict flat, training loop is omitted altogether
     if args.evaluate:

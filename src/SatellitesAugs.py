@@ -60,9 +60,11 @@ class SatellitesTrainAugmentation(object):
         mask = self.augment(mask)
         return img,mask
 class SatellitesTestAugmentation(object):
-    def __init__(self,shape=1280):
+    def __init__(self,shape=1280,padding=6):
         self.augment = Compose([
-                RandomCrop(shape),            
+                # NpyToPil(),
+                # transforms.Pad(padding=padding, fill=0),
+                RandomCrop(shape), # most likely causing low score on test test!          
                 # NpyToPil(),
                 # transforms.Scale(shape),
                 # PilToNpy(),            
