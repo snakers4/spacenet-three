@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from collections import defaultdict
 from skimage.io import imread
 import matplotlib.pyplot as plt
 import skimage.morphology
@@ -8,6 +9,7 @@ import sknw
 DILATION_SIZE = 4
 MAX_DISTANCE_FROM_LINE_TO_SPLIT = 2
 CLIP_THRESHOLD = 0.3
+DIRECTED_DILATION_SIZE = 64
 
 
 def simplify_edge(ps: np.ndarray, max_distance=3):
@@ -71,6 +73,58 @@ def simplify_graph(graph, max_distance=2):
     return all_segments
 
 
+def direction_dilation(mask, all_segments, dilation_size=DIRECTED_DILATION_SIZE):
+    extra_mask = np.zeros_like(mask, dtype=np.int)
+
+    # find end nodes first
+    node_edges_count = defaultdict(int)
+    for segments in all_segments:
+        node_edges_count[tuple(segments[0].astype(int))] += 1
+        node_edges_count[tuple(segments[-1].astype(int))] += 1
+
+    min_segment_len = 20
+
+    for segments_pair in all_segments:
+        # check segments from both ends
+        for segments in [segments_pair, np.flip(segments_pair, axis=0)]:
+            if node_edges_count[tuple(segments[0].astype(int))] == 1:
+                v = segments[0] - segments[1]
+                if np.linalg.norm(v) < min_segment_len:
+                    if segments.shape[0] > 2:
+                        v = segments[0] - segments[2]
+                if np.linalg.norm(v) < min_segment_len:
+                    continue
+
+                v /= np.linalg.norm(v)
+                found_gap = False
+                for step in range(dilation_size*2):
+                    pos = (segments[0] + v * step / 2).astype(np.int)
+                    if pos[0] < 0 or pos[0] >= mask.shape[0]:
+                        continue
+
+                    if pos[1] < 0 or pos[1] >= mask.shape[1]:
+                        continue
+                    mask_val = mask[pos[0], pos[1]]
+
+                    if not found_gap and mask_val < 255*CLIP_THRESHOLD:
+                        found_gap = True
+
+                    # connected lines, stop extra line here
+                    if found_gap and mask_val > 255*CLIP_THRESHOLD + 10:
+                        break
+
+                    extra_mask[max(pos[0] - 8, 0):min(pos[0]+8, extra_mask.shape[0]-1),
+                               max(pos[1] - 8, 0):min(pos[1]+8, extra_mask.shape[1]-1)] = (255 * CLIP_THRESHOLD * 0.95)
+
+    res = mask+extra_mask
+    plt.imshow(mask+extra_mask)
+    plt.figure()
+    res[res > 255 * CLIP_THRESHOLD] = 255
+    plt.imshow(res)
+
+    return mask+extra_mask
+
+
 if __name__ == '__main__':
     # mask_fn = '../data/ln34_wide_masks_mul_ps_vegetation_aug_dice_predict_train/MUL-PanSharpen_AOI_2_Vegas_img1353.jpg'
     mask_fn = '../data/ln34_wide_masks_mul_ps_vegetation_aug_dice_predict_pad/MUL-PanSharpen_AOI_2_Vegas_img1353.jpg'
@@ -90,5 +144,22 @@ if __name__ == '__main__':
     plt.imshow(img)
     draw_original_graph(graph)
     for segments in all_segments:
+        plt.plot(segments[:, 1], segments[:, 0], 'blue', marker='.')
+    plt.figure()
+
+    # second stage, with possible roads connected
+    img2 = direction_dilation(img, all_segments)
+
+    img2_clip = np.zeros_like(img)
+    img2_clip[img2 > 255 * CLIP_THRESHOLD] = 1
+
+    ske2 = skimage.morphology.skeletonize(img2_clip).astype(np.uint16)
+    graph2 = sknw.build_sknw(ske2, multi=True)
+    all_segments2 = simplify_graph(graph2, max_distance=MAX_DISTANCE_FROM_LINE_TO_SPLIT)
+
+    plt.figure()
+    plt.imshow(img2)
+    draw_original_graph(graph2)
+    for segments in all_segments2:
         plt.plot(segments[:, 1], segments[:, 0], 'blue', marker='.')
     plt.show()
