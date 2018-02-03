@@ -25,13 +25,14 @@ from sklearn.model_selection import train_test_split
 
 # custom classes
 from UNet import UNet11
-from LinkNet import LinkNet34,LinkNet50,LinkNet50_full
+from LinkNet import LinkNet34,LinkNet50,LinkNet50_full,LinkNeXt
 from Loss import BCEDiceLoss,TDiceLoss,DiceLoss
-from LossSemSeg import cross_entropy2d
 from presets import preset_dict
-from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset,get_train_dataset_for_predict,get_train_dataset_wide_masks,get_train_dataset_layered_masks
+from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset,get_train_dataset_for_predict,get_train_dataset_wide_masks,get_train_dataset_layered_masks,get_train_dataset_all,get_train_dataset_for_predict_all,get_train_dataset_all_16bit,get_train_dataset_for_predict_all_16bit,get_test_dataset_16bit
 from SatellitesAugs import SatellitesTrainAugmentation,SatellitesTestAugmentation
 from presets import preset_dict
+
+from LRScheduler import CyclicLR
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -75,6 +76,8 @@ parser.add_argument('-pr_train', '--predict_train', dest='predict_train', action
                     help='generate prediction masks')
 parser.add_argument('--tensorboard_images', default=False, type=str2bool,
                     help='Use tensorboard to see images')
+parser.add_argument('--city', '-cty', default='all', type=str,
+                    metavar='CTY', help='a city to train on')
 
 best_val_loss = 100
 train_minib_counter = 0
@@ -108,8 +111,13 @@ def main():
     global logger
     
     # train either on normal masks or on wide masks or on 3-layer masks
-    bit8_imgs,bit8_masks,cty_no = get_train_dataset(args.preset,
-                                                    preset_dict)
+    bit8_imgs,bit8_masks,cty_no = get_train_dataset_all(args.preset,
+                                                    preset_dict,
+                                                    args.city)
+    
+    # bit8_imgs,bit8_masks,cty_no = get_train_dataset(args.preset,
+    #                                                 preset_dict,
+    #                                                args.city)
     
     # bit8_imgs,bit8_masks,cty_no = get_train_dataset_wide_masks(args.preset,
     #                                                           preset_dict)    
@@ -117,17 +125,22 @@ def main():
     # bit8_imgs,bit8_masks,cty_no = get_train_dataset_layered_masks(args.preset,
     #                                                               preset_dict)      
     
-    
     if args.predict:
         predict_imgs,predict_city_folders,predict_img_names,cty_no_test,predict_prefix = get_test_dataset(args.preset,
-                                                                                           preset_dict)    
+                                                                                           preset_dict,
+                                                                                           args.city)    
     elif args.predict_train:
         predict_imgs,predict_city_folders,predict_img_names,cty_no_test,predict_prefix = get_train_dataset_for_predict(args.preset,
-                                                                                           preset_dict)     
+                                                                                           preset_dict,
+                                                                                           args.city)   
+            
+        # predict_imgs,predict_city_folders,predict_img_names,cty_no_test,predict_prefix = get_train_dataset_for_predict(args.preset,
+        #                                                                                    preset_dict,
+        #                                                                                   args.city)     
 
     train_imgs, val_imgs, train_masks, val_masks = train_test_split(bit8_imgs,
                                                                     bit8_masks,
-                                                                    test_size=0.2,
+                                                                    test_size=0.25,
                                                                     stratify=cty_no,
                                                                     random_state=args.seed)    
     if not (args.predict or args.predict_train):
@@ -148,6 +161,10 @@ def main():
         else:
             model = LinkNet34(num_channels=3,
                               num_classes=1)
+    elif args.arch.startswith('linknext'):
+        print('LinkNeXt101-32 activated')
+        model = LinkNeXt(num_channels=3,
+                          num_classes=1)            
     elif args.arch.startswith('linknet50_full'):
         print('Full linknet50 activated')
         if args.preset in ['mul_ps_8channel','mul_8channel']:
@@ -265,7 +282,15 @@ def main():
                                               verbose = True,
                                               threshold = 1e-3,
                                               min_lr = 1e-5
-                                             )    
+                                              )
+    
+    # scheduler = CyclicLR(optimizer = optimizer,
+    #                                 base_lr = 1e-6,
+    #                                 max_lr = 1e-4,
+    #                                 step_size = 1200,
+    #                                 mode = 'triangular'                                         
+    #                                )
+        
     # if we pass evaluate or predict flat, training loop is omitted altogether
     if args.evaluate:
         validate(val_loader, model, criterion)
@@ -284,10 +309,10 @@ def main():
         # adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
-        train_loss = train(train_loader, model, criterion, optimizer, epoch)
+        train_loss = train(train_loader, model, criterion, optimizer, epoch, scheduler)
 
         # evaluate on validation set
-        val_loss = validate(val_loader, model, criterion)
+        val_loss = validate(val_loader, model, criterion, scheduler)
         
         scheduler.step(val_loss)
 
@@ -320,10 +345,12 @@ def main():
         'weights/{}_best.pth.tar'.format(str(args.lognumber))
         )
 
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, scheduler):
     global train_minib_counter
     global logger
         
+    # scheduler.batch_step()
+    
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -382,9 +409,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
             
     return losses.avg
 
-def validate(val_loader, model, criterion):
+def validate(val_loader, model, criterion, scheduler):
     global valid_minib_counter
     global logger
+    
+    # scheduler.batch_step()    
     
     batch_time = AverageMeter()
     losses = AverageMeter()

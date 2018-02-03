@@ -9,9 +9,20 @@ from imgaug import augmenters as iaa
 from torchvision import transforms
 from PIL import Image
 import torch
+from skimage.transform import rotate
 
 seed = 43
 is_mask = False
+
+# resnet and resnext means 
+# 'mean': [0.485, 0.456, 0.406],
+# 'std': [0.229, 0.224, 0.225]
+
+# normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+#                                 std=[1, 1, 1, 1, 1, 1, 1, 1])
+
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
 
 class SatellitesTrainAugmentation(object):
     def __init__(self,
@@ -20,7 +31,7 @@ class SatellitesTrainAugmentation(object):
         
         if aug_scheme == True:
             print('Augmentations are enabled for train')
-            self.augment = Compose([
+            self.augment_img = Compose([
                     # RandomCrop(800),
                     # NpyToPil(),
                     # transforms.Scale(shape),
@@ -28,65 +39,239 @@ class SatellitesTrainAugmentation(object):
                     ImgAugAugs(),
                     RandomCrop(shape),
                     ToTensor(),
+                    normalize
                 ])
+            self.augment_mask = Compose([
+                    # RandomCrop(800),
+                    # NpyToPil(),
+                    # transforms.Scale(shape),
+                    # PilToNpy(),
+                    ImgAugAugs(),
+                    RandomCrop(shape),
+                    ToTensor()
+                ])            
         else:
             print('Augmentations are NOT enabled for train')
-            self.augment = Compose([
+            self.augment_img = Compose([
                     RandomCrop(shape),                
                     # NpyToPil(),
                     # transforms.Scale(shape),
                     # PilToNpy(),
                     ToTensor(),
-                ])            
+                    normalize
+                ]) 
+            self.augment_mask = Compose([
+                    RandomCrop(shape),                
+                    # NpyToPil(),
+                    # transforms.Scale(shape),
+                    # PilToNpy(),
+                    ToTensor()
+                ])               
         
     def __call__(self, img, mask):
         global seed
         global is_mask
-        seed = random.randint(0,10000)
+        seed = random.randint(0,100)
         # process image
         is_mask = False
         # naive solution to working with 8-channel images 
         if img.shape[2]>3:
-            img1 = self.augment(img[:,:,0:3]) 
-            img2 = self.augment(img[:,:,3:6])
-            img3 = self.augment(img[:,:,5:8])
+            img1 = self.augment_img(img[:,:,0:3]) 
+            img2 = self.augment_img(img[:,:,3:6])
+            img3 = self.augment_img(img[:,:,5:8])
             img = torch.cat((img1[0:3,:,:],img2[0:3,:,:],img3[1:3,:,:]))
         else:
-            img = self.augment(img)
+            img = self.augment_img(img)
         # process mask
         is_mask = True
         # quick hack to evaluate paved only or non-paved only roads
         # mask = self.augment(mask[:,:,1:3])        
-        mask = self.augment(mask)
+        mask = self.augment_mask(mask)
         return img,mask
 class SatellitesTestAugmentation(object):
     def __init__(self,shape=1280,padding=6):
-        self.augment = Compose([
+        self.augment_img = Compose([
                 # NpyToPil(),
                 # transforms.Pad(padding=padding, fill=0),
-                RandomCrop(shape), # most likely causing low score on test test!          
+                # RandomCrop(shape), # most likely causing low score on test test!          
+                NumpyPad(padding),
                 # NpyToPil(),
                 # transforms.Scale(shape),
                 # PilToNpy(),            
                 ToTensor(),
+                normalize
             ])
-    def __call__(self, img, mask):
+        self.augment_mask = Compose([
+                # NpyToPil(),
+                # transforms.Pad(padding=padding, fill=0),
+                # RandomCrop(shape), # most likely causing low score on test test!          
+                NumpyPad(padding),
+                # NpyToPil(),
+                # transforms.Scale(shape),
+                # PilToNpy(),            
+                ToTensor()
+            ])        
+    def __call__(self, img, mask,seed_param=None):
         global is_mask
+        global seed
+        
+        if seed_param is None:
+            seed = random.randint(0,100)
+        else:
+            seed = seed_param
+
         # naive solution to working with 8-channel images 
         is_mask = False
         if img.shape[2]>3:
-            img1 = self.augment(img[:,:,0:3]) 
-            img2 = self.augment(img[:,:,3:6])
-            img3 = self.augment(img[:,:,5:8])
+            img1 = self.augment_img(img[:,:,0:3]) 
+            img2 = self.augment_img(img[:,:,3:6])
+            img3 = self.augment_img(img[:,:,5:8])
             img = torch.cat((img1[0:3,:,:],img2[0:3,:,:],img3[1:3,:,:]))
         else:
-            img = self.augment(img)
+            img = self.augment_img(img)
         if mask is not None:
             is_mask = True
             # quick hack to evaluate paved only or non-paved only roads
             # mask = self.augment(mask[:,:,1:3])
-            mask = self.augment(mask)            
+            mask = self.augment_mask(mask)            
         return img,mask
+class SatellitesTestAugmentationTTA(object):
+    def __init__(self,
+                 padding=6,
+                 hflip=False,
+                 vflip=False):
+        if (hflip == True and vflip == False):
+            self.augment_img = Compose([
+                    NpyToPil(),
+                    transforms.Pad(padding=padding, fill=0),      
+                    PilToNpy(),
+                    HFlip(),            
+                    ToTensor(),
+                    normalize
+                ])
+            self.augment_mask = Compose([
+                    NpyToPil(),
+                    transforms.Pad(padding=padding, fill=0),
+                    PilToNpy(),
+                    HFlip(),
+                    ToTensor()
+                ])
+        elif (hflip == False and vflip == True):
+            self.augment_img = Compose([
+                    NpyToPil(),
+                    transforms.Pad(padding=padding, fill=0),      
+                    PilToNpy(),
+                    VFlip(),            
+                    ToTensor(),
+                    normalize
+                ])
+            self.augment_mask = Compose([
+                    NpyToPil(),
+                    transforms.Pad(padding=padding, fill=0),
+                    PilToNpy(),
+                    VFlip(),
+                    ToTensor()
+                ])            
+        elif (hflip == True and vflip == True):
+            self.augment_img = Compose([
+                    NpyToPil(),
+                    transforms.Pad(padding=padding, fill=0),      
+                    PilToNpy(),
+                    HFlip(),
+                    VFlip(),           
+                    ToTensor(),
+                    normalize
+                ])
+            self.augment_mask = Compose([
+                    NpyToPil(),
+                    transforms.Pad(padding=padding, fill=0),
+                    PilToNpy(),
+                    HFlip(),
+                    VFlip(),
+                    ToTensor()
+                ])
+        else:
+            self.augment_img = Compose([
+                    NpyToPil(),
+                    transforms.Pad(padding=padding, fill=0),      
+                    PilToNpy(),
+                    ToTensor(),
+                    normalize
+                ])
+            self.augment_mask = Compose([
+                    NpyToPil(),
+                    transforms.Pad(padding=padding, fill=0),
+                    PilToNpy(),
+                    ToTensor()
+                ])
+            
+    def __call__(self, img, mask,seed_param=None):
+        global is_mask
+        global seed
+        
+        if seed_param is None:
+            seed = random.randint(0,100)
+        else:
+            seed = seed_param
+
+        # naive solution to working with 8-channel images 
+        is_mask = False
+        if img.shape[2]>3:
+            img1 = self.augment_img(img[:,:,0:3]) 
+            img2 = self.augment_img(img[:,:,3:6])
+            img3 = self.augment_img(img[:,:,5:8])
+            img = torch.cat((img1[0:3,:,:],img2[0:3,:,:],img3[1:3,:,:]))
+        else:
+            img = self.augment_img(img)
+        if mask is not None:
+            is_mask = True
+            # quick hack to evaluate paved only or non-paved only roads
+            # mask = self.augment(mask[:,:,1:3])
+            mask = self.augment_mask(mask)            
+        return img,mask
+class NumpyPad(object):
+    def __init__(self,
+                 padding = 6):
+        self.padding = padding
+    def __call__(self, img):
+        return  np.pad(array=img,pad_width=((self.padding,self.padding), (self.padding,self.padding),(0,0)),mode='constant',constant_values=0) 
+class HFlip(object):
+    def __call__(self,
+                 image):
+        seq = iaa.Sequential([
+            iaa.Fliplr(1.0), # horizontally flip 100% of all images
+        ], random_order=False)       
+        return seq.augment_image(image)
+class VFlip(object):
+    def __call__(self,
+                 image):
+        seq = iaa.Sequential([
+            iaa.Flipud(1.0), # vertically flip 100% of all images
+        ], random_order=False)       
+        return seq.augment_image(image)    
+# version compatible with 16-bit images
+"""  
+class ImgAugAugs(object):
+    def __call__(self,
+                 image):
+        global seed        
+        
+        # poor man's flipping
+        if seed%2==0:
+            image = np.fliplr(image)
+        elif seed%4==0:
+            image = np.fliplr(image)
+            image = np.flipud(image)
+        
+        # poor man's affine transformations
+        image = rotate(image,
+                     angle=seed,
+                     resize=False,
+                     clip=True,
+                     preserve_range=True)        
+
+        return image
+"""
 class ImgAugAugs(object):
     def __call__(self,
                  image):
@@ -111,6 +296,7 @@ class ImgAugAugs(object):
         ], random_order=True) # apply augmenters in random order        
 
         return seq.augment_image(image)
+      
 class RandomCrop(object):
     def __init__(self,
                  shape = 512):

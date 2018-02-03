@@ -21,17 +21,25 @@ layered_mask_df_file = 'new_masks_layered.csv'
 
 # high level function that return list of images and cities under presets
 def get_test_dataset(preset,
-                     preset_dict):
+                     preset_dict,
+                     city='all'):
     meta_df = pd.read_csv(meta_data_file)
     
     test_folders = ['AOI_2_Vegas_Roads_Test_Public','AOI_5_Khartoum_Roads_Test_Public',
                'AOI_3_Paris_Roads_Test_Public','AOI_4_Shanghai_Roads_Test_Public']
     
+    cities_dict = {'all': ['AOI_2_Vegas_Roads_Test_Public', 'AOI_5_Khartoum_Roads_Test_Public','AOI_3_Paris_Roads_Test_Public', 'AOI_4_Shanghai_Roads_Test_Public'],
+                  'vegas':['AOI_2_Vegas_Roads_Test_Public'],
+                  'paris':['AOI_3_Paris_Roads_Test_Public'],
+                  'shanghai':['AOI_4_Shanghai_Roads_Test_Public'],
+                  'khartoum': ['AOI_5_Khartoum_Roads_Test_Public']}     
+    
     # select the images
     sample_df = meta_df[(meta_df.img_files.isin(test_folders))
                         &(meta_df.width == preset_dict[preset]['width'])
                         &(meta_df.channels == preset_dict[preset]['channel_count'])
-                        &(meta_df.img_folders == preset_dict[preset]['subfolder'])]
+                        &(meta_df.img_folders == preset_dict[preset]['subfolder'])
+                        &(meta_df.img_files.isin(cities_dict[city]))]                       
 
     # get the data as lists for simplicity
     or_imgs = list(sample_df[['img_subfolders','img_files','img_folders']]
@@ -48,16 +56,24 @@ def get_test_dataset(preset,
 
 # high level function that return list of images and cities under presets
 def get_train_dataset(preset,
-                     preset_dict):
+                     preset_dict,
+                     city='all'):
     mask_df = pd.read_csv(mask_df_file)
     meta_df = pd.read_csv(meta_data_file)
     data_df = mask_df.merge(meta_df[['img_subfolders','width','channels']], how = 'left', left_on = 'img_file', right_on = 'img_subfolders')
+    
+    cities_dict = {'all': ['AOI_2_Vegas_Roads_Train', 'AOI_5_Khartoum_Roads_Train','AOI_3_Paris_Roads_Train', 'AOI_4_Shanghai_Roads_Train'],
+                  'vegas':['AOI_2_Vegas_Roads_Train'],
+                  'paris':['AOI_3_Paris_Roads_Train'],
+                  'shanghai':['AOI_4_Shanghai_Roads_Train'],
+                  'khartoum': ['AOI_5_Khartoum_Roads_Train']}    
     
     # select the images
     sample_df = data_df[(data_df.width == preset_dict[preset]['width'])
                         &(data_df.mask_max > 0)
                         &(data_df.channels == preset_dict[preset]['channel_count'])
-                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])]
+                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])
+                        &(data_df.img_folder.isin(cities_dict[city]))]
 
     # get the data as lists for simplicity
     bit8_imgs = list(sample_df.bit8_path.values)
@@ -135,16 +151,24 @@ class SatellitesDataset(data.Dataset):
             return target_channels
 
 def get_train_dataset_for_predict(preset,
-                                  preset_dict):
+                                  preset_dict,
+                                  city='all'):
     mask_df = pd.read_csv(mask_df_file)
     meta_df = pd.read_csv(meta_data_file)
     data_df = mask_df.merge(meta_df[['img_subfolders','width','channels']], how = 'left', left_on = 'img_file', right_on = 'img_subfolders')
+    
+    cities_dict = {'all': ['AOI_2_Vegas_Roads_Train', 'AOI_5_Khartoum_Roads_Train','AOI_3_Paris_Roads_Train', 'AOI_4_Shanghai_Roads_Train'],
+                  'vegas':['AOI_2_Vegas_Roads_Train'],
+                  'paris':['AOI_3_Paris_Roads_Train'],
+                  'shanghai':['AOI_4_Shanghai_Roads_Train'],
+                  'khartoum': ['AOI_5_Khartoum_Roads_Train']}     
     
     # select the images
     sample_df = data_df[(data_df.width == preset_dict[preset]['width'])
                         &(data_df.mask_max > 0)
                         &(data_df.channels == preset_dict[preset]['channel_count'])
-                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])]
+                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])
+                        &(data_df.img_folder.isin(cities_dict[city]))]                       
     
     # get the data as lists for simplicity
     bit8_imgs = list(sample_df.bit8_path.values)
@@ -240,3 +264,169 @@ def get_train_dataset_layered_masks(preset,
     cty_no = list(sample_df.city_no.values)
     
     return bit8_imgs,bit8_masks,cty_no
+
+# high level function that return list of images and cities under presets
+def get_train_dataset_all(preset,
+                     preset_dict,
+                     city='all'):
+    mask_df = pd.read_csv(mask_df_file)
+    meta_df = pd.read_csv(meta_data_file)
+    data_df = mask_df.merge(meta_df[['img_subfolders','width','channels']], how = 'left', left_on = 'img_file', right_on = 'img_subfolders')
+    
+    cities_dict = {'all': ['AOI_2_Vegas_Roads_Train', 'AOI_5_Khartoum_Roads_Train','AOI_3_Paris_Roads_Train', 'AOI_4_Shanghai_Roads_Train'],
+                  'vegas':['AOI_2_Vegas_Roads_Train'],
+                  'paris':['AOI_3_Paris_Roads_Train'],
+                  'shanghai':['AOI_4_Shanghai_Roads_Train'],
+                  'khartoum': ['AOI_5_Khartoum_Roads_Train']}    
+    
+    # select the images
+    sample_df = data_df[(data_df.width == preset_dict[preset]['width'])
+                        # &(data_df.mask_max > 0)
+                        &(data_df.channels == preset_dict[preset]['channel_count'])
+                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])
+                        &(data_df.img_folder.isin(cities_dict[city]))]
+
+    # get the data as lists for simplicity
+    bit8_imgs = list(sample_df.bit8_path.values)
+    bit8_masks = list(sample_df.mask_path.values)
+    
+    bit8_masks = [(path.replace("_mask","_all_mask")) for path in bit8_masks]       
+    
+    bit8_imgs = [(os.path.join(prefix_train,path)) for path in bit8_imgs]
+    bit8_masks = [(os.path.join(prefix_train,path)) for path in bit8_masks]
+    le, u = sample_df['img_folder'].factorize()
+    sample_df.loc[:,'city_no'] = le
+    cty_no = list(sample_df.city_no.values)
+    
+    return bit8_imgs,bit8_masks,cty_no
+
+def get_train_dataset_for_predict_all(preset,
+                                  preset_dict,
+                                  city='all'):
+    mask_df = pd.read_csv(mask_df_file)
+    meta_df = pd.read_csv(meta_data_file)
+    data_df = mask_df.merge(meta_df[['img_subfolders','width','channels']], how = 'left', left_on = 'img_file', right_on = 'img_subfolders')
+    
+    cities_dict = {'all': ['AOI_2_Vegas_Roads_Train', 'AOI_5_Khartoum_Roads_Train','AOI_3_Paris_Roads_Train', 'AOI_4_Shanghai_Roads_Train'],
+                  'vegas':['AOI_2_Vegas_Roads_Train'],
+                  'paris':['AOI_3_Paris_Roads_Train'],
+                  'shanghai':['AOI_4_Shanghai_Roads_Train'],
+                  'khartoum': ['AOI_5_Khartoum_Roads_Train']}     
+    
+    # select the images
+    sample_df = data_df[(data_df.width == preset_dict[preset]['width'])
+                        # &(data_df.mask_max > 0)
+                        &(data_df.channels == preset_dict[preset]['channel_count'])
+                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])
+                        &(data_df.img_folder.isin(cities_dict[city]))]                       
+    
+    # get the data as lists for simplicity
+    bit8_imgs = list(sample_df.bit8_path.values)
+    bit8_imgs = [(os.path.join(prefix_train,path)) for path in bit8_imgs]
+
+    le, u = sample_df['img_folder'].factorize()
+    sample_df.loc[:,'city_no'] = le
+    cty_no = list(sample_df.city_no.values)
+    
+    city_folders = list(sample_df.img_folder.values)
+    img_names = list(sample_df.img_file.values)    
+    
+    return bit8_imgs,city_folders,img_names,cty_no,prefix
+def get_train_dataset_all_16bit(preset,
+                     preset_dict,
+                     city='all'):
+    mask_df = pd.read_csv(mask_df_file)
+    meta_df = pd.read_csv(meta_data_file)
+    data_df = mask_df.merge(meta_df[['img_subfolders','width','channels']], how = 'left', left_on = 'img_file', right_on = 'img_subfolders')
+    
+    cities_dict = {'all': ['AOI_2_Vegas_Roads_Train', 'AOI_5_Khartoum_Roads_Train','AOI_3_Paris_Roads_Train', 'AOI_4_Shanghai_Roads_Train'],
+                  'vegas':['AOI_2_Vegas_Roads_Train'],
+                  'paris':['AOI_3_Paris_Roads_Train'],
+                  'shanghai':['AOI_4_Shanghai_Roads_Train'],
+                  'khartoum': ['AOI_5_Khartoum_Roads_Train']}    
+    
+    # select the images
+    sample_df = data_df[(data_df.width == preset_dict[preset]['width'])
+                        # &(data_df.mask_max > 0)
+                        &(data_df.channels == preset_dict[preset]['channel_count'])
+                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])
+                        &(data_df.img_folder.isin(cities_dict[city]))]
+
+    # get the data as lists for simplicity
+    bit16_imgs = list(sample_df.img_path.values)
+    bit8_masks = list(sample_df.mask_path.values)
+    
+    bit8_masks = [(path.replace("_mask","_all_mask")) for path in bit8_masks]       
+    
+    bit16_imgs = [(os.path.join(prefix_train,path)) for path in bit16_imgs]
+    bit8_masks = [(os.path.join(prefix_train,path)) for path in bit8_masks]
+    le, u = sample_df['img_folder'].factorize()
+    sample_df.loc[:,'city_no'] = le
+    cty_no = list(sample_df.city_no.values)
+    
+    return bit16_imgs,bit8_masks,cty_no
+def get_train_dataset_for_predict_all_16bit(preset,
+                                  preset_dict,
+                                  city='all'):
+    mask_df = pd.read_csv(mask_df_file)
+    meta_df = pd.read_csv(meta_data_file)
+    data_df = mask_df.merge(meta_df[['img_subfolders','width','channels']], how = 'left', left_on = 'img_file', right_on = 'img_subfolders')
+    
+    cities_dict = {'all': ['AOI_2_Vegas_Roads_Train', 'AOI_5_Khartoum_Roads_Train','AOI_3_Paris_Roads_Train', 'AOI_4_Shanghai_Roads_Train'],
+                  'vegas':['AOI_2_Vegas_Roads_Train'],
+                  'paris':['AOI_3_Paris_Roads_Train'],
+                  'shanghai':['AOI_4_Shanghai_Roads_Train'],
+                  'khartoum': ['AOI_5_Khartoum_Roads_Train']}     
+    
+    # select the images
+    sample_df = data_df[(data_df.width == preset_dict[preset]['width'])
+                        # &(data_df.mask_max > 0)
+                        &(data_df.channels == preset_dict[preset]['channel_count'])
+                        &(data_df.img_subfolder == preset_dict[preset]['subfolder'])
+                        &(data_df.img_folder.isin(cities_dict[city]))]                       
+    
+    # get the data as lists for simplicity
+    bit16_imgs = list(sample_df.img_path.values)
+    bit16_imgs = [(os.path.join(prefix_train,path)) for path in bit16_imgs]
+
+    le, u = sample_df['img_folder'].factorize()
+    sample_df.loc[:,'city_no'] = le
+    cty_no = list(sample_df.city_no.values)
+    
+    city_folders = list(sample_df.img_folder.values)
+    img_names = list(sample_df.img_file.values)    
+    
+    return bit16_imgs,city_folders,img_names,cty_no,prefix
+def get_test_dataset_16bit(preset,
+                     preset_dict,
+                     city='all'):
+    meta_df = pd.read_csv(meta_data_file)
+    
+    test_folders = ['AOI_2_Vegas_Roads_Test_Public','AOI_5_Khartoum_Roads_Test_Public',
+               'AOI_3_Paris_Roads_Test_Public','AOI_4_Shanghai_Roads_Test_Public']
+    
+    cities_dict = {'all': ['AOI_2_Vegas_Roads_Test_Public', 'AOI_5_Khartoum_Roads_Test_Public','AOI_3_Paris_Roads_Test_Public', 'AOI_4_Shanghai_Roads_Test_Public'],
+                  'vegas':['AOI_2_Vegas_Roads_Test_Public'],
+                  'paris':['AOI_3_Paris_Roads_Test_Public'],
+                  'shanghai':['AOI_4_Shanghai_Roads_Test_Public'],
+                  'khartoum': ['AOI_5_Khartoum_Roads_Test_Public']}     
+    
+    # select the images
+    sample_df = meta_df[(meta_df.img_files.isin(test_folders))
+                        &(meta_df.width == preset_dict[preset]['width'])
+                        &(meta_df.channels == preset_dict[preset]['channel_count'])
+                        &(meta_df.img_folders == preset_dict[preset]['subfolder'])
+                        &(meta_df.img_files.isin(cities_dict[city]))]                       
+
+    # get the data as lists for simplicity
+    or_imgs = list(sample_df[['img_subfolders','img_files','img_folders']]
+                   .apply(lambda row: os.path.join(prefix,row['img_files'],row['img_folders'],row['img_subfolders']), axis=1).values)
+
+    le, u = sample_df['img_folders'].factorize()
+    sample_df.loc[:,'city_no'] = le
+    cty_no = list(sample_df.city_no.values)
+    
+    city_folders = list(sample_df.img_files.values)
+    img_names = list(sample_df.img_subfolders.values)
+    
+    return or_imgs,city_folders,img_names,cty_no,prefix
