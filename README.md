@@ -1,4 +1,4 @@
-# Hardware requirements
+# 1 Hardware requirements
 
 **Training**
 
@@ -13,7 +13,7 @@
 - On 2 * GeForce 1080 Ti inference takes **3-5 minutes**;
 - Graph creation takes **5-10 minutes**;
 
-# Preparing and launching the Docker environment
+# 2 Preparing and launching the Docker environment
 
 **Clone the repository**
 
@@ -22,8 +22,8 @@
 
 
 **This repository contains 2 Dockerfiles**
-- `/dockerfiles/Dockerfile` - this is a main Dockerfile which was used as environment to run the training and inference scripts
-- `/dockerfiles/Dockerfile2`- this is a backup Docker file with newer versions of the drivers and PyTorch, just in case
+- `/dockerfiles/Dockerfile` - this is the main Dockerfile which was used as environment to run the training and inference scripts
+- `/dockerfiles/Dockerfile2`- this is an additional backup Docker file with newer versions of the drivers and PyTorch, just in case
 
 **Build a Docker image**
 
@@ -88,7 +88,7 @@ If you will be trying to re-do this step - reserve 5-6 hours for experiments.
 `docker start -i YOUR_CONTAINER_ID`
 
 
-# Preparing the data and the machine for running scripts
+# 3 Preparing the data and the machine for running scripts
 
 - Dowload the data into `data/`
 - Run these commands:
@@ -134,14 +134,15 @@ After all of your manipulations your directory should look like:
 └── scripts                                   <- One-off preparation scripts
 ```
 
-# Training the model
+# 4 Training the model
 
 If all is ok, then use the following command to train the model
 
 - `cd src`
 - optional - turn on tensorboard for monitoring progress `tensorboard --logdir='satellites_roads/src/tb_logs' --port=6006` via jupyter notebook console or via tmux + docker exec (model converges in 30-40 epochs)
-- 
-``` echo 'python3 train_satellites.py \
+- then
+```
+echo 'python3 train_satellites.py \
 	--arch linknet34 --batch-size 6 \
 	--imsize 1280 --preset mul_ps_vegetation --augs True \
 	--workers 6 --epochs 40 --start-epoch 0 \
@@ -149,15 +150,14 @@ If all is ok, then use the following command to train the model
 	--lr 1e-3 --optimizer adam \
 	--tensorboard True --lognumber ln34_mul_ps_vegetation_aug_dice' > train.sh
 ```
-
-
 - `sh train.sh`
 
-# Predicting masks
+# 5 Predicting masks
 
 - 'cd src'
-- 
-``` echo 'python3 train_satellites.py\
+- then
+``` 
+echo 'python3 train_satellites.py\
 	--arch linknet34 --batch-size 12\
 	--imsize 1312 --preset mul_ps_vegetation --augs True\
 	--workers 6 --epochs 50 --start-epoch 0\
@@ -169,7 +169,7 @@ If all is ok, then use the following command to train the model
 - `sh predict.sh`
 
 
-# Creating graphs and submission files
+# 6 Creating graphs and submission files
 
 
 
