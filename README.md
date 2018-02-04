@@ -171,5 +171,36 @@ echo 'python3 train_satellites.py\
 
 # 6 Creating graphs and submission files
 
+# 7 Additional notes
 
+- You can run training and inference on the presets from `/src/presets.py`
+- So the model can be evaluated on RGB-PS images and / or 8-channel images as well
+- This script, for example will train an 8-channel model
+```
+python3 train_satellites.py \
+	--arch linknet34 --batch-size 6 \
+	--imsize 1280 --preset mul_ps_vegetation --augs True \
+	--workers 6 --epochs 40 --start-epoch 0 \
+	--seed 42 --print-freq 20 \
+	--lr 1e-3 --optimizer adam \
+	--tensorboard True --lognumber ln34_mul_ps_vegetation_aug_dice
+```
 
+To train an 8-channel model you should also replace mean and std settings in the `src/SatellitesAugs.py`
+
+```
+# 8-channel settings
+# normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+#                                 std=[1, 1, 1, 1, 1, 1, 1, 1])
+
+# 3 channel settings
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+```
+
+- 16-bit images are also supported
+- Also the following models are supported
+    - `unet11` (VGG11 + Unet)
+    - `linknet50` (ResNet50 + LinkNet, 3 layers)
+    - `linknet50_full` (ResNet50 + LinkNet, 4 layers)
+    - `linknext` (ResNext-101-32 + LinkNet, 4 layers)
