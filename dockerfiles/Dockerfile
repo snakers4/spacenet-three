@@ -57,17 +57,33 @@ ARG python_version=3.5
 
 RUN conda install -y python=${python_version} && \
     pip install --upgrade pip && \
-    pip install tensorflow-gpu && \
+    pip install tensorflow-gpu==1.4 && \
     conda install Pillow scikit-learn notebook pandas matplotlib mkl nose pyyaml six h5py && \
     conda install theano pygpu bcolz && \
     pip install keras kaggle-cli lxml opencv-python requests scipy tqdm visdom && \
     conda install pytorch torchvision cuda80 -c soumith && \
+    pip install imgaug && \
     conda clean -yt
 
-RUN pip install jupyter_contrib_nbextensions && \
-    pip install 'html5lib==0.9999999' && \
+RUN pip install git+https://github.com/ipython-contrib/jupyter_contrib_nbextensions && \
     jupyter contrib nbextension install --user
 
+RUN conda install -y -c conda-forge cython
+RUN conda install -y -c conda-forge libgdal
+RUN conda install -y -c conda-forge gdal
+RUN conda install -y -c conda-forge scikit-image
+RUN conda install -y -c conda-forge pyproj
+RUN conda install -y -c conda-forge geopandas
+RUN conda install -y -c conda-forge tqdm
+RUN conda install -y -c conda-forge shapely=1.5.16
+RUN conda install -y -c conda-forge scipy
+RUN conda install -y -c conda-forge networkx=1.11
+RUN conda install -y -c conda-forge fiona
+RUN pip install utm
+RUN pip install osmnx==0.5.1
+RUN pip install numba
+RUN conda install -y -c conda-forge scikit-image
+RUN apt install libgl1-mesa-glx
 
 ENV LD_LIBRARY_PATH /usr/local/cuda/lib64:/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
 ENV CPATH /usr/include:/usr/include/x86_64-linux-gnu:/usr/local/cuda/include:$CPATH
@@ -81,4 +97,3 @@ WORKDIR /home/keras/notebook
 EXPOSE 8888 6006 22 8097
 
 CMD jupyter notebook --port=8888 --ip=0.0.0.0 --no-browser
-
