@@ -17,7 +17,6 @@
 
 **Clone the repository**
 
-
 `git clone https://github.com/snakers4/spacenet-three .`
 
 
@@ -90,6 +89,8 @@ If you will be trying to re-do this step - reserve 5-6 hours for experiments.
 
 # 3 Preparing the data and the machine for running scripts
 
+- Ssh into the docker container via `docker exec -it YOUR_CONTAINER_ID`
+- Cd to the root folder of thre repo
 - Dowload the data into `data/`
 - Run these commands:
     - `mkdir src/weights`
@@ -138,6 +139,8 @@ After all of your manipulations your directory should look like:
 
 If all is ok, then use the following command to train the model
 
+- Ssh into the docker container via `docker exec -it YOUR_CONTAINER_ID`
+- Cd to the root folder of thre repo
 - `cd src`
 - optional - turn on tensorboard for monitoring progress `tensorboard --logdir='satellites_roads/src/tb_logs' --port=6006` via jupyter notebook console or via tmux + docker exec (model converges in 30-40 epochs)
 - then
@@ -154,7 +157,9 @@ echo 'python3 train_satellites.py \
 
 # 5 Predicting masks
 
-- 'cd src'
+- Ssh into the docker container via `docker exec -it YOUR_CONTAINER_ID`
+- Cd to the root folder of thre repo
+- `cd src`
 - then
 ``` 
 echo 'python3 train_satellites.py\
@@ -179,9 +184,9 @@ Scipt saves a file called `norm_test.csv` into `../solutions` directory. The res
 
 # 7 Additional notes
 
-- You can run training and inference on the presets from `/src/presets.py`
-- So the model can be evaluated on RGB-PS images and / or 8-channel images as well
-- This script, for example will train an 8-channel model
+- You can run training and inference on the presets from `/src/presets.py`;
+- So the model can be evaluated on RGB-PS images and / or 8-channel images as well;
+- This script, for example will train an 8-channel model:
 ```
 python3 train_satellites.py \
 	--arch linknet34 --batch-size 6 \
@@ -204,9 +209,48 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 ```
 
-- 16-bit images are also supported
+- 16-bit images are also supported:
+
+This snippet is commented in `src/SatellitesAugs.py`
+
+```
+# version compatible with 16-bit images
+"""  
+class ImgAugAugs(object):
+    def __call__(self,
+                 image):
+        global seed        
+        
+        # poor man's flipping
+        if seed%2==0:
+            image = np.fliplr(image)
+        elif seed%4==0:
+            image = np.fliplr(image)
+            image = np.flipud(image)
+        
+        # poor man's affine transformations
+        image = rotate(image,
+                     angle=seed,
+                     resize=False,
+                     clip=True,
+                     preserve_range=True)        
+
+        return image
+"""
+```
+
 - Also the following models are supported
     - `unet11` (VGG11 + Unet)
     - `linknet50` (ResNet50 + LinkNet, 3 layers)
     - `linknet50_full` (ResNet50 + LinkNet, 4 layers)
     - `linknext` (ResNext-101-32 + LinkNet, 4 layers)
+    
+- Also in the repo you can find scripts to generate wide masks (i.e. wide roads have varying width) and layered masks (paved / non-paved). There are scripts in the `src/SatellitesDataset.py` that support that. They basically just replace some paths; 
+    
+# 8 Juputer notebooks
+
+Use these notebooks on your own risk!
+
+- `src/experiments.ipynb` - general debugging notebook with new models / generators / etc
+- `src/play_w_stuff.ipynb` - visualizing the solutions
+- `src/pipeline_experiments.ipynb`- some minor experiments with the graph creation script
