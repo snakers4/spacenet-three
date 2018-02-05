@@ -170,6 +170,12 @@ echo 'python3 train_satellites.py\
 
 
 # 6 Creating graphs and submission files
+`cd` into `scripts` directory and execute `final_model_lstrs.py` script as follows:
+```
+docker exec -it YOUR_CONTAINER_ID sh -c "cd path/to/src && python3 final_model_lstrs.py --folder norm_ln34_mul_ps_vegetation_aug_dice_predict"
+```
+`folder` argument is for masks containing folder name, default is `norm_ln34_mul_ps_vegetation_aug_dice_predict`.
+Scipt saves a file called `norm_test.csv` into `../solutions` directory. The resulting file is used then as a submission file.
 
 # 7 Additional notes
 
