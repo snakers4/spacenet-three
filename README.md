@@ -170,7 +170,7 @@ echo 'python3 train_satellites.py\
 
 
 # 6 Creating graphs and submission files
-`cd` into `scripts` directory and execute `final_model_lstrs.py` script as follows:
+`cd` into `src` directory and execute `final_model_lstrs.py` script as follows:
 ```
 docker exec -it YOUR_CONTAINER_ID sh -c "cd path/to/src && python3 final_model_lstrs.py --folder norm_ln34_mul_ps_vegetation_aug_dice_predict"
 ```
