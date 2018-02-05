@@ -51,6 +51,8 @@ Unless you use this exact command (with --shm-size flag) (you can change ports a
 - nvidia-docker: `nvidia-docker -it -v /path/to/cloned/repository:/home/keras/notebook -p 8888:8888 -p 6006:6006  --shm-size 8G aveysov`
 
 **Installing project specific software**
+
+
 0. Already done for `/dockerfiles/Dockerfile`. You can do it yourself for `/dockerfiles/Dockerfile2`
 1. Exec into the docker machine via `docker exec -it --user root YOUR_CONTAINER_ID /bin/bash`
 2. Run these scripts one after another
