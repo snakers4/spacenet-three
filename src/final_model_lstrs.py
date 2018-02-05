@@ -12,6 +12,14 @@ import cv2
 from collections import Counter
 from skimage.draw import circle
 import os
+import argparse
+
+parser = argparse.ArgumentParser(description='Masks into linestrings')
+
+parser.add_argument('--folder', '-fld', default='norm_ln34_mul_ps_vegetation_aug_dice_predict', type=str,
+                    metavar='FLD', help='masks containing folder name')
+
+args = parser.parse_args()
 
 #globbing
 root = '../data'
@@ -20,7 +28,7 @@ test_folders1 = ['AOI_2_Vegas_Roads_Test_Public',
                  'AOI_3_Paris_Roads_Test_Public', 
                  'AOI_4_Shanghai_Roads_Test_Public', 
                  'AOI_5_Khartoum_Roads_Test_Public']
-mask_folders2_test_pad = ['norm_ln34_mul_ps_vegetation_aug_dice_predict']
+mask_folders2_test_pad = [args.folder]
 
 globdf_test = pd.DataFrame()
 for test_folder in test_folders1:
@@ -169,7 +177,7 @@ def process_masks(mask_paths):
 # calculating result
 print('Processing masks into linestrings...')
 
-globdf_test_narrow_vegetation = globdf_test_pad[globdf_test_pad['mask_folder_test'] == 'norm_ln34_mul_ps_vegetation_aug_dice_predict'].copy()
+globdf_test_narrow_vegetation = globdf_test_pad[globdf_test_pad['mask_folder_test'] == args.folder].copy()
 lstrs_test = process_masks(globdf_test_narrow_vegetation.mask_img)
 
 lstrs_test = lstrs_test[['ImageId', 'WKT_Pix']].copy()
