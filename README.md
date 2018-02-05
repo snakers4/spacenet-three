@@ -172,6 +172,8 @@ echo 'python3 train_satellites.py\
 	--predict --resume weights/norm_ln34_mul_ps_vegetation_aug_dice_best.pth.tar\' > predict.sh
 ```
 - `sh predict.sh`
+- You can also load the [pretrained weights](https://drive.google.com/open?id=19Zd4RG0P0YwwRZ_xgip7dAmb4Bp8WqTI) to the `src/weights` folder for the above definition of the model
+
 
 
 # 6 Creating graphs and submission files
