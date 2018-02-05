@@ -93,8 +93,8 @@ class SatellitesTestAugmentation(object):
         self.augment_img = Compose([
                 # NpyToPil(),
                 # transforms.Pad(padding=padding, fill=0),
-                # RandomCrop(shape), # most likely causing low score on test test!          
-                NumpyPad(padding),
+                RandomCrop(shape), # most likely causing low score on test test!          
+                # NumpyPad(padding),
                 # NpyToPil(),
                 # transforms.Scale(shape),
                 # PilToNpy(),            
@@ -104,11 +104,46 @@ class SatellitesTestAugmentation(object):
         self.augment_mask = Compose([
                 # NpyToPil(),
                 # transforms.Pad(padding=padding, fill=0),
-                # RandomCrop(shape), # most likely causing low score on test test!          
-                NumpyPad(padding),
+                RandomCrop(shape), # most likely causing low score on test test!          
+                # NumpyPad(padding),
                 # NpyToPil(),
                 # transforms.Scale(shape),
                 # PilToNpy(),            
+                ToTensor()
+            ])        
+    def __call__(self, img, mask,seed_param=None):
+        global is_mask
+        global seed
+        
+        if seed_param is None:
+            seed = random.randint(0,100)
+        else:
+            seed = seed_param
+
+        # naive solution to working with 8-channel images 
+        is_mask = False
+        if img.shape[2]>3:
+            img1 = self.augment_img(img[:,:,0:3]) 
+            img2 = self.augment_img(img[:,:,3:6])
+            img3 = self.augment_img(img[:,:,5:8])
+            img = torch.cat((img1[0:3,:,:],img2[0:3,:,:],img3[1:3,:,:]))
+        else:
+            img = self.augment_img(img)
+        if mask is not None:
+            is_mask = True
+            # quick hack to evaluate paved only or non-paved only roads
+            # mask = self.augment(mask[:,:,1:3])
+            mask = self.augment_mask(mask)            
+        return img,mask
+class SatellitesTestAugmentationPredict(object):
+    def __init__(self,shape=1280,padding=6):
+        self.augment_img = Compose([
+                NumpyPad(padding),
+                ToTensor(),
+                normalize
+            ])
+        self.augment_mask = Compose([
+                NumpyPad(padding),
                 ToTensor()
             ])        
     def __call__(self, img, mask,seed_param=None):

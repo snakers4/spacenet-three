@@ -29,7 +29,7 @@ from LinkNet import LinkNet34,LinkNet50,LinkNet50_full,LinkNeXt
 from Loss import BCEDiceLoss,TDiceLoss,DiceLoss
 from presets import preset_dict
 from SatellitesDataset import get_test_dataset,get_train_dataset,SatellitesDataset,get_train_dataset_for_predict,get_train_dataset_wide_masks,get_train_dataset_layered_masks,get_train_dataset_all,get_train_dataset_for_predict_all,get_train_dataset_all_16bit,get_train_dataset_for_predict_all_16bit,get_test_dataset_16bit
-from SatellitesAugs import SatellitesTrainAugmentation,SatellitesTestAugmentation
+from SatellitesAugs import SatellitesTrainAugmentation,SatellitesTestAugmentation,SatellitesTestAugmentationPredict
 from presets import preset_dict
 
 from LRScheduler import CyclicLR
@@ -245,9 +245,8 @@ def main():
             pin_memory=True)
         
     else:
-        predict_augs = SatellitesTestAugmentation(shape=args.imsize)    
-
-
+        predict_augs = SatellitesTestAugmentationPredict(shape=args.imsize,
+                                                         padding=6)    
     
         predict_dataset = SatellitesDataset(preset = preset_dict[args.preset],
                                         image_paths = predict_imgs,

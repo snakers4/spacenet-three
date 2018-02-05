@@ -290,7 +290,9 @@ def get_train_dataset_all(preset,
     bit8_imgs = list(sample_df.bit8_path.values)
     bit8_masks = list(sample_df.mask_path.values)
     
-    bit8_masks = [(path.replace("_mask","_all_mask")) for path in bit8_masks]       
+    bit8_masks = [(path.replace("_mask","_all_mask")) for path in bit8_masks]
+    bit8_masks = [(path.replace("RGB-PanSharpen_all_mask/RGB-PanSharpen","MUL-PanSharpen_all_mask/MUL-PanSharpen")) for path in bit8_masks]
+
     
     bit8_imgs = [(os.path.join(prefix_train,path)) for path in bit8_imgs]
     bit8_masks = [(os.path.join(prefix_train,path)) for path in bit8_masks]

@@ -16,7 +16,7 @@ class TDiceLoss(nn.Module):
             dice_output = outputs
             intersection = (dice_output * dice_target).sum()
             union = dice_output.sum() + dice_target.sum() + eps
-            loss -= torch.log(2 * intersection / union)
+            loss += 1 - torch.log(2 * intersection / union)
 
         return loss
 
