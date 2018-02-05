@@ -21,8 +21,8 @@
 
 
 **This repository contains 2 Dockerfiles**
-- `/dockerfiles/Dockerfile` - this is the main Dockerfile which was used as environment to run the training and inference scripts
-- `/dockerfiles/Dockerfile2`- this is an additional backup Docker file with newer versions of the drivers and PyTorch, just in case
+- `/dockerfiles/Dockerfile` - this is the main Dockerfile which was used as environment to run the training and inference scripts. This one also includes the majority of the tested legact spacenet libraries used by their APLS repository
+- `/dockerfiles/Dockerfile2`- this is an additional backup Docker file with newer versions of the drivers and PyTorch, just in case. Does not contain spacenet libraries
 
 **Build a Docker image**
 
@@ -51,7 +51,7 @@ Unless you use this exact command (with --shm-size flag) (you can change ports a
 - nvidia-docker: `nvidia-docker -it -v /path/to/cloned/repository:/home/keras/notebook -p 8888:8888 -p 6006:6006  --shm-size 8G aveysov`
 
 **Installing project specific software**
-
+0. Already done for `/dockerfiles/Dockerfile`. You can do it yourself for `/dockerfiles/Dockerfile2`
 1. Exec into the docker machine via `docker exec -it --user root YOUR_CONTAINER_ID /bin/bash`
 2. Run these scripts one after another
 ```
@@ -75,6 +75,7 @@ pip3 install osmnx==0.5.1
 pip3 install numba
 conda install -y -c conda-forge scikit-image
 ```
+4. Sometimes `apt install libgl1-mesa-glx` is necessary due to some Docker [quirks](https://github.com/ContinuumIO/docker-images/issues/49) 
 
 Steps 2-3 are to ensure compatibility with legacy software from APLS [repository](https://github.com/CosmiQ/apls).
 An alternative to that - is to use pip's requirements.txt in the same order.
@@ -87,18 +88,16 @@ If you will be trying to re-do this step - reserve 5-6 hours for experiments.
 `docker start -i YOUR_CONTAINER_ID`
 
 
-# 3 Preparing the data and the machine for running scripts
+# 3 Preparing the data and the machine for running scripts using APLS code
 
-- Ssh into the docker container via `docker exec -it YOUR_CONTAINER_ID`
-- Cd to the root folder of thre repo
 - Dowload the data into `data/`
-- Run these commands:
-    - `mkdir src/weights`
-    - `mkdir src/tb_logs`
-    - `cd scripts` 
-    - `python3 create_binary_masks.py` 
-    - `python3 create_8bit_test_images.py` 
-    
+- Run these commands to create 8-bit images, mask and test 8-bit images:
+```
+docker exec -it YOUR_CONTAINER_ID sh -c "python3 create_binary_masks.py && \
+cd src && \
+python3 create_8bit_test_images.py && \
+"
+```
     
 After all of your manipulations your directory should look like:
 
@@ -135,54 +134,58 @@ After all of your manipulations your directory should look like:
 └── scripts                                   <- One-off preparation scripts
 ```
 
-# 4 Training the model
+# 4 Training the model from scratch
 
 If all is ok, then use the following command to train the model
 
-- Ssh into the docker container via `docker exec -it YOUR_CONTAINER_ID`
-- Cd to the root folder of thre repo
-- `cd src`
 - optional - turn on tensorboard for monitoring progress `tensorboard --logdir='satellites_roads/src/tb_logs' --port=6006` via jupyter notebook console or via tmux + docker exec (model converges in 30-40 epochs)
 - then
 ```
-echo 'python3 train_satellites.py \
-	--arch linknet34 --batch-size 6 \
-	--imsize 1280 --preset mul_ps_vegetation --augs True \
-	--workers 6 --epochs 40 --start-epoch 0 \
-	--seed 42 --print-freq 20 \
-	--lr 1e-3 --optimizer adam \
-	--tensorboard True --lognumber ln34_mul_ps_vegetation_aug_dice' > train.sh
+docker exec -it YOUR_CONTAINER_ID sh -c "echo 'python3 train_satellites.py \
+--arch linknet34 --batch-size 6 \
+--imsize 1280 --preset mul_ps_vegetation --augs True \
+--workers 6 --epochs 40 --start-epoch 0 \
+--seed 42 --print-freq 20 \
+--lr 1e-3 --optimizer adam \
+--tensorboard True --lognumber ln34_mul_ps_vegetation_aug_dice' > train.sh && \
+sh train.sh""
 ```
-- `sh train.sh`
 
 # 5 Predicting masks
 
-- Ssh into the docker container via `docker exec -it YOUR_CONTAINER_ID`
-- Cd to the root folder of thre repo
-- `cd src`
-- then
+- You can load the [pretrained weights](https://drive.google.com/open?id=19Zd4RG0P0YwwRZ_xgip7dAmb4Bp8WqTI) to the `src/weights` folder for the above definition of the model
+- Run this script
 ``` 
-echo 'python3 train_satellites.py\
-	--arch linknet34 --batch-size 12\
-	--imsize 1312 --preset mul_ps_vegetation --augs True\
-	--workers 6 --epochs 50 --start-epoch 0\
-	--seed 42 --print-freq 10\
-	--lr 1e-3 --optimizer adam\
-	--lognumber norm_ln34_mul_ps_vegetation_aug_dice_predict\
-	--predict --resume weights/norm_ln34_mul_ps_vegetation_aug_dice_best.pth.tar\' > predict.sh
+docker exec -it YOUR_CONTAINER_ID sh -c "cd src && \
+echo 'python3 train_satellites.py \
+--arch linknet34 --batch-size 12 \
+--imsize 1312 --preset mul_ps_vegetation --augs True \
+--workers 6 --epochs 50 --start-epoch 0 \
+--seed 42 --print-freq 10 \
+--lr 1e-3 --optimizer adam \
+--lognumber norm_ln34_mul_ps_vegetation_aug_dice_predict \
+--predict --resume weights/norm_ln34_mul_ps_vegetation_aug_dice_best.pth.tar\' > predict.sh && \
+sh predict.sh
 ```
-- `sh predict.sh`
-- You can also load the [pretrained weights](https://drive.google.com/open?id=19Zd4RG0P0YwwRZ_xgip7dAmb4Bp8WqTI) to the `src/weights` folder for the above definition of the model
 
 
 
 # 6 Creating graphs and submission files
-`cd` into `src` directory and execute `final_model_lstrs.py` script as follows:
+
+
+Execute this script:
 ```
-docker exec -it YOUR_CONTAINER_ID sh -c "cd path/to/src && python3 final_model_lstrs.py --folder norm_ln34_mul_ps_vegetation_aug_dice_predict"
+docker exec -it YOUR_CONTAINER_ID sh -c "cd src && \
+python3 final_model_lstrs.py --folder norm_ln34_mul_ps_vegetation_aug_dice_predict"
 ```
+
+
 `folder` argument is for masks containing folder name, default is `norm_ln34_mul_ps_vegetation_aug_dice_predict`.
-Scipt saves a file called `norm_test.csv` into `../solutions` directory. The resulting file is used then as a submission file.
+Scipt saves a file called `norm_test.csv` into `../solutions` directory. 
+
+The resulting file is used then as a submission file.
+
+
 
 # 7 Additional notes
 
