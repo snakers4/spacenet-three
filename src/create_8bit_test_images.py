@@ -143,5 +143,5 @@ bit8_df = pd.DataFrame()
 for i,key in enumerate(['bit8_folder','bit8_path','img_path','img_folder','img_subfolder','img_file']):
     bit8_df[key] = bit8_data[i]
 
-bit8_df.to_csv('bit8_test.csv')
+bit8_df.to_csv('bit8_test_run.csv')
 

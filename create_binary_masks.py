@@ -364,4 +364,4 @@ mask_df = pd.DataFrame()
 for i,key in enumerate(['label_file','bit8_folder','bit8_path','mask_folder','mask_path','img_path','img_folder','img_subfolder','img_file', 'mask_max']):
     mask_df[key] = mask_data[i]
 
-mask_df.to_csv('mask_df.csv')
+mask_df.to_csv('mask_df_run.csv')
