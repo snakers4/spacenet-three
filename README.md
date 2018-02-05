@@ -1,3 +1,5 @@
+![Architecture](satellites.jpg)
+
 # 1 Hardware requirements
 
 **Training**
