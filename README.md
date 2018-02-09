@@ -1,5 +1,9 @@
 ![Architecture](satellites.jpg)
 
+**More stuff from us**
+- [Telegram](t.me/snakers4) 
+- [Twitter](https://twitter.com/AlexanderVeysov)
+
 # 1 Hardware requirements
 
 **Training**
