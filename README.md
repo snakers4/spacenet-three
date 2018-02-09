@@ -246,6 +246,9 @@ class ImgAugAugs(object):
 
         return image
 """
+
+But be careful with normalization (`div(255)`), as 16-bit images actually are 11-bit (divide by 2048).
+
 ```
 
 - Also the following models are supported
