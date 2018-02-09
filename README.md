@@ -1,8 +1,9 @@
 ![Architecture](satellites.jpg)
 
 **More stuff from us**
-- [Telegram](t.me/snakers4) 
+- [Telegram](https://t.me/snakers4) 
 - [Twitter](https://twitter.com/AlexanderVeysov)
+- [Blog](https://spark-in.me/tag/data-science)
 
 # 1 Hardware requirements
 
