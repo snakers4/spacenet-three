@@ -100,6 +100,7 @@ If you will be trying to re-do this step - reserve 5-6 hours for experiments.
 # 3 Preparing the data and the machine for running scripts using APLS code
 
 - Dowload the data into `data/`
+- Data Download [guide](https://drive.google.com/open?id=1WJh8Q1Oj38Ahn0FiwUv1WZXoIwnY08_kL4XO8cikPo0) from the authors
 - Run these commands to create 8-bit images, mask and test 8-bit images:
 ```
 docker exec -it YOUR_CONTAINER_ID sh -c "python3 create_binary_masks.py && \
